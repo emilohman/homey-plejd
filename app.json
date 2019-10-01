@@ -1,0 +1,65 @@
+{
+  "id": "se.emilohman.plejd",
+  "version": "0.0.1",
+  "compatibility": ">=2.1.2",
+  "sdk": 2,
+  "name": {
+    "en": "Plejd"
+  },
+  "description": {
+    "en": "Adds support for Plejd devices."
+  },
+  "tags": {
+		"en": [ "plejd, light, bluetooth, BLE, dimmer" ]
+	},
+  "category": [
+    "lights"
+  ],
+  "permissions": [
+    "homey:wireless:ble"
+  ],
+  "images": {
+    "large": "/assets/images/large.png",
+    "small": "/assets/images/small.png"
+  },
+  "author": {
+    "name": "Emil Öhman",
+    "email": "emilohman@gmail.com"
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Emil Öhman",
+        "email": "emilohman@gmail.com"
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "id": "plejd",
+      "name": {
+        "en": "Plejd"
+      },
+      "class": "light",
+      "capabilities": [
+        "dim",
+        "onoff"
+      ],
+      "images": {
+        "large": "/drivers/plejd/assets/images/large.png",
+        "small": "/drivers/plejd/assets/images/small.png"
+      },
+      "pair": [
+        {
+          "id": "settings",
+          "navigation": {
+            "next": "done"
+          }
+        },
+        {
+          "id": "done"
+        }
+      ]
+    }
+  ]
+}

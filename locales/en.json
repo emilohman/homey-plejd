@@ -1,0 +1,11 @@
+{
+	"pair": {
+		"title":{
+			"done": "Ready",
+			"device": "New Plejd Device"
+		},
+		"select": {
+			"done": "The device is added to Homey"
+		}
+	}
+}
