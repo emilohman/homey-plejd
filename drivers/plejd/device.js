@@ -4,17 +4,17 @@ const Homey = require('homey');
 
 class PlejdDevice extends Homey.Device {
 
-	onInit() {
-		const driver = this.getDriver();
-		this.log('Plejd Device (' + this.getName() + ') initialized');
-		this.log('id: ', this.getData().id);
-		this.log('plejdId: ', this.getData().plejdId);
-		this.log('count ', driver.getDevices().length);
+  onInit() {
+    const driver = this.getDriver();
+    this.log('Plejd Device (' + this.getName() + ') initialized');
+    this.log('id: ', this.getData().id);
+    this.log('plejdId: ', this.getData().plejdId);
+    this.log('count ', driver.getDevices().length);
 
-		this.registerCapabilityListener("onoff", async value => {
+    this.registerCapabilityListener("onoff", async value => {
       this.log(`Power is set to: ${value} for id ${this.getData().plejdId}`);
       if (value) {
-				return await driver.turnOn(parseInt(this.getData().plejdId));
+        return await driver.turnOn(parseInt(this.getData().plejdId));
       } else {
         return await driver.turnOff(parseInt(this.getData().plejdId));
       }
@@ -30,28 +30,28 @@ class PlejdDevice extends Homey.Device {
         return await driver.turnOn(this.getData().plejdId, brightness);
       }
     });
-	}
+  }
 
   async onAdded() {
-		const driver = this.getDriver();
+    const driver = this.getDriver();
 
     this.log('Adding device: ' + this.getName() + ' (' + this.getData().id + ')');
-		this.log('count ', driver.getDevices().length);
+    this.log('count ', driver.getDevices().length);
 
-		if (driver.getDevices().length === 1) {
-			await driver.connect();
-		}
+    if (driver.getDevices().length === 1) {
+      await driver.connect();
+    }
   }
 
   async onDeleted() {
-		const driver = this.getDriver();
+    const driver = this.getDriver();
 
     this.log('device deleted: ' + this.getName());
-		this.log('count ', driver.getDevices().length);
+    this.log('count ', driver.getDevices().length);
 
-		if (driver.getDevices().length === 0) {
-			await driver.disconnect();
-		}
+    if (driver.getDevices().length === 0) {
+      await driver.disconnect();
+    }
   }
 
 }

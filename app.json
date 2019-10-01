@@ -10,8 +10,8 @@
     "en": "Adds support for Plejd devices."
   },
   "tags": {
-		"en": [ "plejd, light, bluetooth, BLE, dimmer" ]
-	},
+    "en": [ "plejd, light, bluetooth, BLE, dimmer" ]
+  },
   "category": [
     "lights"
   ],
