@@ -14,10 +14,12 @@ class PlejdDevice extends Homey.Device {
     this.registerCapabilityListener("onoff", async value => {
       this.log(`Power is set to: ${value} for id ${this.getData().plejdId}`);
       if (value) {
-        return await driver.turnOn(parseInt(this.getData().plejdId));
+        await driver.turnOn(parseInt(this.getData().plejdId));
       } else {
-        return await driver.turnOff(parseInt(this.getData().plejdId));
+        await driver.turnOff(parseInt(this.getData().plejdId));
       }
+
+      return Promise.resolve(true);
     });
 
     this.registerCapabilityListener("dim", async value => {
@@ -25,10 +27,12 @@ class PlejdDevice extends Homey.Device {
 
       const brightness = parseInt(255 * value);
       if (brightness == 0) {
-        return await driver.turnOff(this.getData().plejdId);
+        await driver.turnOff(this.getData().plejdId);
       } else {
-        return await driver.turnOn(this.getData().plejdId, brightness);
+        await driver.turnOn(this.getData().plejdId, brightness);
       }
+
+      return Promise.resolve(true);
     });
   }
 
@@ -39,7 +43,9 @@ class PlejdDevice extends Homey.Device {
     this.log('count ', driver.getDevices().length);
 
     if (driver.getDevices().length === 1) {
-      await driver.connect();
+      if (driver.keepConnectionAlive) {
+        await driver.connect();
+      }
     }
   }
 
@@ -50,7 +56,9 @@ class PlejdDevice extends Homey.Device {
     this.log('count ', driver.getDevices().length);
 
     if (driver.getDevices().length === 0) {
-      await driver.disconnect();
+      if (driver.keepConnectionAlive) {
+        await driver.disconnect();
+      }
     }
   }
 

@@ -17,17 +17,50 @@ class PlejdDriver extends Homey.Driver {
 
     this.isConnecting = false;
     this.isConnected = false;
+    this.keepConnectionAlive = false;
+    this.writeList = [];
 
     Homey.on("unload", async () => {
-      await this.disconnect();
+      if (this.keepConnectionAlive) {
+        await this.disconnect();
+      }
     });
 
     if (this.getDevices().length > 0) {
-      await this.connect();
+      if (this.keepConnectionAlive) {
+        await this.connect();
+      }
     }
+
+    Homey.ManagerSettings.on('set', (key) => {
+      if (key === 'keepalive') {
+        let oldKeepAlive = this.keepConnectionAlive;
+
+        this.keepConnectionAlive = Homey.ManagerSettings.get('keepalive');
+
+        if (oldKeepAlive !== this.keepConnectionAlive) {
+          if (this.keepConnectionAlive) {
+            this.connect();
+          } else {
+            this.disconnect();
+          }
+         }
+      }
+
+      if (key === 'cryptokey') {
+        if (this.keepConnectionAlive) {
+          this.disconnect();
+          this.connect();
+        }
+      }
+    });
   }
 
   async connect() {
+    const self = this;
+
+    this.log(this.isConnecting, this.isConnected);
+
     if (this.isConnecting || this.isConnected) {
       return Promise.resolve(false);
     }
@@ -36,44 +69,111 @@ class PlejdDriver extends Homey.Driver {
 
     this.isConnecting = true;
 
-    let settings = Homey.ManagerSettings.get('plejd_config');
+    let cryptokey = Homey.ManagerSettings.get('cryptokey');
 
-    if (settings && settings.cryptokey) {
-      this.cryptokey = Buffer.from(settings.cryptokey.replace(/-/g, ''), 'hex');
+    if (cryptokey) {
+      this.cryptokey = Buffer.from(cryptokey.replace(/-/g, ''), 'hex');
     } else {
       this.log('No cryptokey exists.');
       return Promise.resolve(false);
     }
 
-    const self = this;
-    let list = [];
+    let meshUUID = Homey.ManagerSettings.get('plejd_mesh');
 
-    for (let retries = 0; retries < 10; retries++) {
-      list = await Homey.ManagerBLE.discover([PLEJD_SERVICE]);
+    let device;
+
+    if (meshUUID) {
+      this.log('Using saved mesh uuid', meshUUID);
+
+      try {
+        device = await Homey.ManagerBLE.find(meshUUID.replace(/\:/g, ''));
+      } catch (error) {
+        this.isConnecting = false;
+        this.log(`error connecting: ${error}`);
+        return Promise.resolve(false);
+      }
+    } else {
+      let list = [];
+
+      this.log('No saved mesh uuid found');
+      this.log('discover');
+
+      for (let retries = 0; retries < 10; retries++) {
+        try {
+          list = await Homey.ManagerBLE.discover([PLEJD_SERVICE]);
+        } catch (error) {
+          this.isConnecting = false;
+          this.log(`error discovering: ${error}`);
+          return Promise.resolve(false);
+        }
+
+        if (list.length === 0) {
+          this.log('No plejd device found');
+        } else {
+          break;
+        }
+      }
 
       if (list.length === 0) {
-        this.log('No plejd device found');
-      } else {
-        break;
+        this.isConnecting = false;
+        return Promise.resolve(false);
       }
+
+      for (let i = 0, length = list.length; i < length; i++) {
+        let d = list[i];
+        this.log(d);
+        if (d.localName === 'P mesh') {
+          device = d;
+          break;
+        }
+      };
+
+      if (!device) {
+        this.isConnecting = false;
+        return Promise.resolve(false);
+      }
+
+      this.log('Saving mesh uuid for later use', device.uuid);
+      Homey.ManagerSettings.set('plejd_mesh', device.uuid);
     }
 
-    if (list.length === 0) {
-      return Promise.resolve(false);
-    }
-
-    const device = list[0];
     if (device.__peripheral) {
       device.__peripheral = null;
     }
 
-    this.peripheral = await device.connect();
+    this.log('device connect');
+
+    try {
+      this.peripheral = await device.connect();
+    } catch (error) {
+      this.isConnecting = false;
+      this.log(`error connecting to peripheral: ${error}`);
+      return Promise.resolve(false);
+    }
 
     this.address = this.reverseBuffer(Buffer.from(String(this.peripheral.address).replace(/\:/g, ''), 'hex'));
 
-    const sac = await this.peripheral.discoverAllServicesAndCharacteristics();
+    this.log('discoverAllServicesAndCharacteristics');
 
-    const service = await this.peripheral.getService(PLEJD_SERVICE);
+    try {
+      const sac = await this.peripheral.discoverAllServicesAndCharacteristics();
+    } catch (error) {
+      this.isConnecting = false;
+      this.log(`error discoverAllServicesAndCharacteristics: ${error}`);
+      return Promise.resolve(false);
+    }
+
+    this.log('getService');
+
+    let service;
+
+    try {
+      service = await this.peripheral.getService(PLEJD_SERVICE);
+    } catch (error) {
+      this.isConnecting = false;
+      this.log(`error getService: ${error}`);
+      return Promise.resolve(false);
+    }
 
     service.characteristics.forEach(function(characteristic) {
       if (DATA_UUID == characteristic.uuid) {
@@ -91,10 +191,22 @@ class PlejdDriver extends Homey.Driver {
           this.lastDataCharacteristic &&
           this.authCharacteristic &&
           this.pingCharacteristic) {
-      await this.authenticate();
+
+      try {
+        await this.authenticate();
+      } catch (error) {
+        this.isConnecting = false;
+        this.log(`error authenticating: ${error}`);
+        return Promise.resolve(false);
+      }
+
       this.isConnected = true;
       this.isConnecting = false;
-      this.startPing();
+
+      if (this.keepConnectionAlive) {
+        this.startPing();
+      }
+
       this.log('Plejd is connected');
     }
   }
@@ -122,11 +234,14 @@ class PlejdDriver extends Homey.Driver {
   }
 
   async authenticate() {
+    this.log('authenticate write');
     await this.authCharacteristic.write(Buffer.from([0]), false);
+    this.log('authenticate read');
     var data = await this.authCharacteristic.read();
 
     var resp = this.plejdChalresp(this.cryptokey, data);
 
+    this.log('authenticate write response');
     await this.authCharacteristic.write(resp, false);
   }
 
@@ -159,31 +274,58 @@ class PlejdDriver extends Homey.Driver {
       return Buffer.from(output, 'ascii');
     }
 
-  async plejdWrite(handle, data) {
-    if (!handle) {
-      throw new Error('No handle');
-    }
+  async plejdWrite(data) {
+    try {
+      let self = this;
 
-    await handle.write(data, false);
+      if (this.isConnecting) {
+        this.writeList.push(data);
+        return Promise.resolve(true);
+      }
+
+      if (!this.keepConnectionAlive) {
+        await this.connect();
+      }
+
+      await this.dataCharacteristic.write(this.plejdEncDec(this.cryptokey, this.address, data), false);
+
+      let writeData;
+      while( (writeData = this.writeList.shift()) !== undefined ) {
+        await this.dataCharacteristic.write(this.plejdEncDec(this.cryptokey, this.address, writeData), false);
+      }
+
+      if (!this.keepConnectionAlive) {
+        clearTimeout(this.disconnectIntervalIndex);
+        this.disconnectIntervalIndex = setTimeout(async () => {
+          await self.disconnect();
+        }, 5000);
+      }
+    } catch(error) {
+      this.log(error);
+    }
   }
 
   async turnOn(id, brightness) {
-    var payload;
+    try {
+      let payload;
 
-    if (!brightness) {
-      payload = Buffer.from((id).toString(16).padStart(2, '0') + '0110009701', 'hex');
-    } else {
-      brightness = brightness << 8 | brightness;
-      payload = Buffer.from((id).toString(16).padStart(2, '0') + '0110009801' + (brightness).toString(16).padStart(4, '0'), 'hex');
+      if (!brightness) {
+        payload = Buffer.from((id).toString(16).padStart(2, '0') + '0110009701', 'hex');
+      } else {
+        brightness = brightness << 8 | brightness;
+        payload = Buffer.from((id).toString(16).padStart(2, '0') + '0110009801' + (brightness).toString(16).padStart(4, '0'), 'hex');
+      }
+
+      await this.plejdWrite(payload);
+    } catch(error) {
+      this.log(error);
     }
-
-    await this.plejdWrite(this.dataCharacteristic, this.plejdEncDec(this.cryptokey, this.address, payload));
   }
 
   async turnOff(id) {
-    var payload = Buffer.from((id).toString(16).padStart(2, '0') + '0110009700', 'hex');
+    let payload = Buffer.from((id).toString(16).padStart(2, '0') + '0110009700', 'hex');
 
-    await this.plejdWrite(this.dataCharacteristic, this.plejdEncDec(this.cryptokey, this.address, payload));
+    await this.plejdWrite(payload);
   }
 
   async startPing() {
@@ -191,8 +333,10 @@ class PlejdDriver extends Homey.Driver {
 
     clearInterval(this.pingIndex);
     this.pingIndex = setInterval(async () => {
+      self.log('pingInterval', self.isConnected);
       if (self.isConnected) {
         var pingOk = await self.plejdPing()
+        self.log('ping', pingOk);
         if (pingOk === false) {
           await self.disconnect();
           await self.connect();
@@ -209,6 +353,8 @@ class PlejdDriver extends Homey.Driver {
 
     await this.pingCharacteristic.write(ping, false);
     var pong = await this.pingCharacteristic.read();
+
+    this.log('pong', pong);
 
     if(((ping[0] + 1) & 0xff) !== pong[0]) {
       return Promise.resolve(false);
@@ -229,6 +375,8 @@ class PlejdDriver extends Homey.Driver {
   }
 
   onPair(socket) {
+    let self = this;
+
     let pairingDevice = {
       id: '',
       name: '',
@@ -236,19 +384,14 @@ class PlejdDriver extends Homey.Driver {
     };
 
     socket.on('getSettings', (data,callback) => {
-      let settings = Homey.ManagerSettings.get('plejd_config');
-      if (settings === undefined || settings === null) {
-        settings = {
-          cryptokey: ""
-        }
-      }
+      let cryptokey = Homey.ManagerSettings.get('cryptokey');
 
-      callback(null, settings);
+      callback(null, cryptokey);
     });
 
     socket.on('saveSettings', (data, callback) => {
-       Homey.ManagerSettings.set('plejd_config', data);
-       callback(null, 'OK');
+      Homey.ManagerSettings.set('cryptokey', data);
+      callback(null, 'OK');
     });
 
     socket.on('save', function( data, callback ) {

@@ -10,9 +10,7 @@
             console.log('Retrieved settings from backend');
             console.log(pairingDevice);
             if (pairingDevice) {
-              Homey.emit('saveSettings', {
-                  cryptokey: pairingDevice.cryptokey
-              }, (err, result) => {
+              Homey.emit('saveSettings', pairingDevice.cryptokey, (err, result) => {
                   debugger;
                   console.log("No error returned from backend");
                   if (!err) {

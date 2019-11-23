@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "compatibility": ">=2.1.2",
   "sdk": 2,
+  "brandColor": "#48c5d6",
   "name": {
     "en": "Plejd"
   },

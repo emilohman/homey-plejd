@@ -8,17 +8,20 @@
     let debounceSave = debounce(save, 500);
 
     cryptokey.addEventListener("keypress", debounceSave);
+    cryptokey.addEventListener("change", debounceSave);
     name.addEventListener("keypress", debounceSave);
+    name.addEventListener("change", debounceSave);
     id.addEventListener("keypress", debounceSave);
+    id.addEventListener("change", debounceSave);
 
-    Homey.emit('getSettings', {}, (err,result) => {
+    Homey.emit('getSettings', {}, (err, result) => {
         if (err) {
             Homey.alert(err);
         } else {
             console.log('Retrieved settings from backend');
             console.log(result);
             if (result) {
-                document.getElementById("cryptokey").value = result.cryptokey;
+                document.getElementById("cryptokey").value = result;
             }
         }
     });
@@ -27,8 +30,8 @@
     function save() {
       Homey.emit('save', {
           id: document.getElementById('plejdId').value,
-          name: name.value,
-          cryptokey: cryptokey.value
+          name: document.getElementById('name').value,
+          cryptokey: document.getElementById('cryptokey').value
       }, (err, result) => {
           debugger;
           console.log("No error returned from backend");

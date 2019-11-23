@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+    <head>
+	    <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
+    </head>
+    <body>
+        <h1 data-i18n="settings.title"></h1>
+        <fieldset>
+            <legend>
+              <p data-i18n="settings.subtitle"></p>
+            </legend>
+
+            <div class="field row">
+                <label for="keepalive" data-i18n="settings.keepAliveLabel"></label>
+                <input id="keepalive" type="checkbox" value="" />
+                <p data-i18n="settings.keepAliveDescription"></p>
+            </div>
+            <div class="field row">
+              <label for="cryptokey" data-i18n="settings.cryptoKeyLabel"></label>
+              <input type="text" id="cryptokey" name="cryptokey" placeholder="22-60-38-37-B0..."/><br/>
+            </div>
+        </fieldset>
+
+        <button id="save" class="right" data-i18n="settings.save"></button>
+
+        <script type="text/javascript">
+          function onHomeyReady(Homey) {
+            Homey.ready();
+
+            var keepAliveElement = document.getElementById('keepalive');
+            var cryptokeyElement = document.getElementById('cryptokey');
+            var saveElement = document.getElementById('save');
+
+            Homey.get('keepalive', function(err, keepalive) {
+              if (err) return Homey.alert(err);
+              keepAliveElement.checked = keepalive;
+            });
+
+             Homey.get('cryptokey', function(err, cryptokey) {
+               if (err) return Homey.alert(err);
+               cryptokeyElement.value = cryptokey;
+             });
+
+  	        saveElement.addEventListener('click', function(e) {
+
+              Homey.set('keepalive', keepAliveElement.checked, function(err) {
+  	            if (err) return Homey.alert(err);
+              });
+
+              Homey.set('cryptokey', cryptokeyElement.value, function(err) {
+  	            if (err) return Homey.alert(err);
+              });
+
+              Homey.alert(__("settings.success"));
+
+  	        });
+          }
+        </script>
+
+    </body>
+</html>
