@@ -55,3 +55,9 @@ $ cat site.json  | jq '.PlejdMesh.outputAdresses' | grep -v '\$type' | jq '.[][]
 ```
 
 Or just open site.json in your favorite editor and extract the crypto key and output addresses (IDs).
+
+
+## Thanks
+Big thanks to [@klali](https://github.com/klali) and his https://github.com/klali/ha-plejd component for Home assistant, this project would not have been possible without it.
+
+And another big thank to Jonas Almquist and every contributor for your donations that got me a Homey!
