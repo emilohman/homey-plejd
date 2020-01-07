@@ -5,6 +5,9 @@
     </head>
     <body>
         <h1 data-i18n="settings.title"></h1>
+
+        <button id="logout" style="margin-bottom: 20px;" data-i18n="settings.logout"></button>
+
         <fieldset>
             <legend>
               <p data-i18n="settings.subtitle"></p>
@@ -15,10 +18,6 @@
                 <input id="keepalive" type="checkbox" value="" />
                 <p data-i18n="settings.keepAliveDescription"></p>
             </div>
-            <div class="field row">
-              <label for="cryptokey" data-i18n="settings.cryptoKeyLabel"></label>
-              <input type="text" id="cryptokey" name="cryptokey" placeholder="22-60-38-37-B0..."/><br/>
-            </div>
         </fieldset>
 
         <button id="save" class="right" data-i18n="settings.save"></button>
@@ -28,18 +27,13 @@
             Homey.ready();
 
             var keepAliveElement = document.getElementById('keepalive');
-            var cryptokeyElement = document.getElementById('cryptokey');
             var saveElement = document.getElementById('save');
+            var logoutElement = document.getElementById('logout');
 
             Homey.get('keepalive', function(err, keepalive) {
               if (err) return Homey.alert(err);
               keepAliveElement.checked = keepalive;
             });
-
-             Homey.get('cryptokey', function(err, cryptokey) {
-               if (err) return Homey.alert(err);
-               cryptokeyElement.value = cryptokey;
-             });
 
   	        saveElement.addEventListener('click', function(e) {
 
@@ -47,11 +41,21 @@
   	            if (err) return Homey.alert(err);
               });
 
-              Homey.set('cryptokey', cryptokeyElement.value, function(err) {
+              Homey.alert(__("settings.success"));
+
+  	        });
+
+            logoutElement.addEventListener('click', function(e) {
+
+              Homey.set('username', null, function(err) {
   	            if (err) return Homey.alert(err);
               });
 
-              Homey.alert(__("settings.success"));
+              Homey.set('password', null, function(err) {
+                if (err) return Homey.alert(err);
+              });
+
+              Homey.alert(__("settings.logoutSuccess"));
 
   	        });
           }

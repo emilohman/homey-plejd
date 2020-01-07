@@ -6,14 +6,18 @@
 		},
 		"select": {
 			"done": "The device is added to Homey"
+		},
+		"site": {
+			"selectSite": "Select site"
 		}
 	},
 	"settings": {
     "title": "Plejd settings",
+		"logout": "Logout from Plejd",
+		"logoutSuccess": "Successfully logged out",
     "subtitle": "Connection",
 		"keepAliveLabel": "Keep connection alive",
 		"keepAliveDescription": "Keeps the connection alive and makes state changes much faster. The downside is that Plejd only support one connection at a time. Turning this setting on will prevent you from using the official Plejd mobile app.",
-		"cryptoKeyLabel": "Crypto key",
 		"save": "Save changes",
 		"success": "The settings has been saved"
   }

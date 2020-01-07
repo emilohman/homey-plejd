@@ -22,18 +22,20 @@ class PlejdDevice extends Homey.Device {
       return Promise.resolve(true);
     });
 
-    this.registerCapabilityListener("dim", async value => {
-      this.log(`Brightness is set to ${value}`);
+    if (this.getData().dimmable) {
+      this.registerCapabilityListener("dim", async value => {
+        this.log(`Brightness is set to ${value}`);
 
-      const brightness = parseInt(255 * value);
-      if (brightness == 0) {
-        await driver.turnOff(this.getData().plejdId);
-      } else {
-        await driver.turnOn(this.getData().plejdId, brightness);
-      }
+        const brightness = parseInt(255 * value);
+        if (brightness == 0) {
+          await driver.turnOff(this.getData().plejdId);
+        } else {
+          await driver.turnOn(this.getData().plejdId, brightness);
+        }
 
-      return Promise.resolve(true);
-    });
+        return Promise.resolve(true);
+      });
+    }
   }
 
   async onAdded() {

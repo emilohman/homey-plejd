@@ -52,14 +52,30 @@
       },
       "pair": [
         {
-          "id": "settings",
-          "navigation": {
-            "next": "done"
+          "id": "login",
+          "template": "login_credentials",
+          "options": {
+            "logo": "../../../assets/images/large.png"
           }
         },
         {
-          "id": "done"
-        }
+          "id": "site",
+          "navigation": {
+            "prev": "login"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "prev": "site",
+            "next": "add_devices"
+          }
+        },
+				{
+					"id": "add_devices",
+					"template": "add_devices"
+				}
       ]
     }
   ]

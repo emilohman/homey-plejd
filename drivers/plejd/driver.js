@@ -4,6 +4,8 @@ const Homey = require('homey');
 const crypto = require('crypto');
 const xor = require('buffer-xor')
 
+const api = require('/lib/api');
+
 const PLEJD_SERVICE = "31ba000160854726be45040c957391b5";
 const DATA_UUID = "31ba000460854726be45040c957391b5";
 const LAST_DATA_UUID = "31ba000560854726be45040c957391b5";
@@ -375,35 +377,107 @@ class PlejdDriver extends Homey.Driver {
   }
 
   onPair(socket) {
-    let self = this;
+    let self = this,
+        site,
+        plejdApi;
 
-    let pairingDevice = {
-      id: '',
-      name: '',
-      cryptokey: ''
-    };
+    socket.on('showView', ( viewId, callback ) => {
+      if (viewId === 'login') {
+        self.log('Try login');
 
-    socket.on('getSettings', (data,callback) => {
-      let cryptokey = Homey.ManagerSettings.get('cryptokey');
+        let username = Homey.ManagerSettings.get('username');
+        let password = Homey.ManagerSettings.get('password');
 
-      callback(null, cryptokey);
+        if (username && password) {
+          plejdApi = new api.PlejdApi(username, password);
+
+          plejdApi.once('loggedIn', () => {
+            socket.nextView();
+            callback();
+          });
+
+          plejdApi.once('loggedInError', () => {
+            callback();
+          });
+
+          plejdApi.login();
+        } else {
+          callback();
+        }
+      }
+   });
+
+    socket.on('login', ( data, callback ) => {
+      let username = data.username;
+      let password = data.password;
+
+      plejdApi = new api.PlejdApi(username, password);
+
+      plejdApi.once('loggedIn', () => {
+        Homey.ManagerSettings.set('username', username);
+        Homey.ManagerSettings.set('password', password);
+
+        callback(null, true);
+      });
+
+      plejdApi.once('loggedInError', () => {
+        callback(null, false);
+      });
+
+      plejdApi.login();
     });
 
-    socket.on('saveSettings', (data, callback) => {
-      Homey.ManagerSettings.set('cryptokey', data);
-      callback(null, 'OK');
+    socket.on('getSites', ( data, callback ) => {
+      self.log('Getting sites');
+      plejdApi.getSites((sites) => {
+        self.log('sites', sites);
+
+        if (sites.length === 1) {
+          site = sites[0];
+          socket.nextView();
+        }
+
+        callback( null, sites );
+      });
     });
 
-    socket.on('save', function( data, callback ) {
-      pairingDevice.id = data.id;
-      pairingDevice.name = data.name;
-      pairingDevice.cryptokey = data.cryptokey;
+    socket.on('saveSite', function( data, callback ) {
+      site = data.site;
 
-      callback( null, pairingDevice );
+      self.log('Saving site: ' + site);
+
+      callback( null, site );
     });
 
-    socket.on('getPairingDevice', function( data, callback ) {
-      callback( null, pairingDevice );
+    socket.on('list_devices', ( data, callback ) => {
+
+      let devices = [];
+
+      let cryptoKey = plejdApi.getCryptoKey(site);
+      Homey.ManagerSettings.set('cryptokey', cryptoKey);
+
+      let plejdDevices = plejdApi.getDevices(site);
+
+      plejdDevices.forEach(function(plejdDevice) {
+        let capabilities = ['onoff'];
+
+        if (plejdDevice.dimmable) {
+          capabilities.push('dim');
+        }
+
+        devices.push({
+          name: plejdDevice.name,
+          data: {
+            id: plejdDevice.deviceId,
+            plejdId: plejdDevice.id,
+            dimmable: plejdDevice.dimmable
+          },
+          capabilities: capabilities
+        });
+      });
+
+      callback( null, devices );
+
     });
   }
 

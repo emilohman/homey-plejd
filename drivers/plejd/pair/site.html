@@ -1,0 +1,60 @@
+<script type="text/javascript">
+    Homey.setTitle(__('pair.title.device'));
+
+    Homey.emit('getSites', {}, (err, sites) => {
+        if (err) {
+            Homey.alert(err);
+        } else {
+            console.log('Retrieved settings from backend');
+            console.log(sites);
+            if (sites) {
+                var listHtml = '';
+                var listEl = document.getElementById("devices-list");
+
+                for (var i = 0, length = sites.length; i < length; i++) {
+                  var site = sites[i],
+                      id = site.replace(/ /g, '_');
+
+                  listHtml += `<li class="device">
+                		<label for="${id}" class="name">
+                			<div class="overlay"></div>
+                			<span class="name" tabindex="-1">${site}</span>
+                		</label>
+                		<label for="${id}" class="checkbox">
+                			<input id="${id}" value="${site}" name="site" type="checkbox" tabindex="2" class="js-site-checkbox">
+                		</label>
+                	</li>`;
+                }
+
+                listEl.innerHTML = listHtml;
+                var checkboxes = document.querySelectorAll('.js-site-checkbox');
+                checkboxes.forEach(function(checkbox) {
+                  checkbox.addEventListener('change', selectSite);
+                });
+            }
+        }
+    });
+
+    function selectSite(e) {
+      var target = e.currentTarget;
+
+      Homey.emit('saveSite', {
+          site: target.value
+      }, (err, result) => {
+          if (err) {
+            Homey.alert(err);
+          } else {
+            Homey.nextView();
+          }
+      });
+    }
+
+</script>
+
+<span id='capab_instructions' data-i18n="pair.site.selectSite">Select site</span>
+<div id="log">
+
+</div>
+<div id="app">
+  <ul id="devices-list"></ul>
+</div>
