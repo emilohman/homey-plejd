@@ -4,5 +4,8 @@
   },
   "1.0.0": {
     "en": "Initial release"
+  },
+  "1.0.1": {
+    "en": "Fixed pairing and updated to new Plejd api."
   }
 }

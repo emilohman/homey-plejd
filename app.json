@@ -1,6 +1,6 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "compatibility": ">=2.1.2",
   "sdk": 2,
   "brandColor": "#48c5d6",
@@ -11,7 +11,9 @@
     "en": "Adds support for Plejd devices."
   },
   "tags": {
-    "en": [ "plejd, light, bluetooth, BLE, dimmer" ]
+    "en": [
+      "plejd, light, bluetooth, BLE, dimmer"
+    ]
   },
   "category": [
     "lights"
@@ -72,10 +74,10 @@
             "next": "add_devices"
           }
         },
-				{
-					"id": "add_devices",
-					"template": "add_devices"
-				}
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
       ]
     }
   ]
