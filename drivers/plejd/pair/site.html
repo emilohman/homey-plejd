@@ -12,8 +12,8 @@
                 var listEl = document.getElementById("devices-list");
 
                 for (var i = 0, length = sites.length; i < length; i++) {
-                  var site = sites[i],
-                      id = site.replace(/ /g, '_');
+                  var site = sites[i].title,
+                      id = sites[i].id;
 
                   listHtml += `<li class="device">
                 		<label for="${id}" class="name">
@@ -21,7 +21,7 @@
                 			<span class="name" tabindex="-1">${site}</span>
                 		</label>
                 		<label for="${id}" class="checkbox">
-                			<input id="${id}" value="${site}" name="site" type="checkbox" tabindex="2" class="js-site-checkbox">
+                			<input id="${id}" value="${id}" name="site" type="checkbox" tabindex="2" class="js-site-checkbox">
                 		</label>
                 	</li>`;
                 }

@@ -433,8 +433,11 @@ class PlejdDriver extends Homey.Driver {
         self.log('sites', sites);
 
         if (sites.length === 1) {
-          site = sites[0];
-          socket.nextView();
+          plejdApi.getSite(sites[0].id, function(_site) {
+            self.log('Saving site: ' + data.site);
+
+            socket.nextView();
+          });
         }
 
         callback( null, sites );
@@ -442,21 +445,21 @@ class PlejdDriver extends Homey.Driver {
     });
 
     socket.on('saveSite', function( data, callback ) {
-      site = data.site;
+      plejdApi.getSite(data.site, function(_site) {
+        self.log('Saving site: ' + data.site);
 
-      self.log('Saving site: ' + site);
-
-      callback( null, site );
+        callback( null );
+      });
     });
 
     socket.on('list_devices', ( data, callback ) => {
 
       let devices = [];
 
-      let cryptoKey = plejdApi.getCryptoKey(site);
+      let cryptoKey = plejdApi.getCryptoKey();
       Homey.ManagerSettings.set('cryptokey', cryptoKey);
 
-      let plejdDevices = plejdApi.getDevices(site);
+      let plejdDevices = plejdApi.getDevices();
 
       plejdDevices.forEach(function(plejdDevice) {
         let capabilities = ['onoff'];
