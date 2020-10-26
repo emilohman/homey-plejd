@@ -7,5 +7,8 @@
   },
   "1.0.1": {
     "en": "Fixed pairing and updated to new Plejd api."
+  },
+  "1.0.2": {
+    "en": "Login and stability improvements"
   }
 }
