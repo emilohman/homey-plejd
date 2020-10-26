@@ -10,6 +10,7 @@
             if (sites) {
                 var listHtml = '';
                 var listEl = document.getElementById("devices-list");
+                listEl.focus();
 
                 for (var i = 0, length = sites.length; i < length; i++) {
                   var site = sites[i].title,
@@ -56,5 +57,5 @@
 
 </div>
 <div id="app">
-  <ul id="devices-list"></ul>
+  <ul id="devices-list" tabindex="0"></ul>
 </div>

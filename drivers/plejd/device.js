@@ -9,17 +9,16 @@ class PlejdDevice extends Homey.Device {
     this.log('Plejd Device (' + this.getName() + ') initialized');
     this.log('id: ', this.getData().id);
     this.log('plejdId: ', this.getData().plejdId);
-    this.log('count ', driver.getDevices().length);
+    this.log('count: ', driver.getDevices().length);
+    this.log('con. alive: ', driver.keepConnectionAlive);
 
     this.registerCapabilityListener("onoff", async value => {
       this.log(`Power is set to: ${value} for id ${this.getData().plejdId}`);
       if (value) {
-        await driver.turnOn(parseInt(this.getData().plejdId));
+        return await driver.turnOn(parseInt(this.getData().plejdId));
       } else {
-        await driver.turnOff(parseInt(this.getData().plejdId));
+        return await driver.turnOff(parseInt(this.getData().plejdId));
       }
-
-      return Promise.resolve(true);
     });
 
     if (this.getData().dimmable) {
@@ -27,13 +26,11 @@ class PlejdDevice extends Homey.Device {
         this.log(`Brightness is set to ${value}`);
 
         const brightness = parseInt(255 * value);
-        if (brightness == 0) {
-          await driver.turnOff(this.getData().plejdId);
+        if (brightness === 0) {
+          return await driver.turnOff(this.getData().plejdId);
         } else {
-          await driver.turnOn(this.getData().plejdId, brightness);
+          return await driver.turnOn(this.getData().plejdId, brightness);
         }
-
-        return Promise.resolve(true);
       });
     }
   }
@@ -46,9 +43,11 @@ class PlejdDevice extends Homey.Device {
 
     if (driver.getDevices().length === 1) {
       if (driver.keepConnectionAlive) {
-        await driver.connect();
+        return await driver.connect();
       }
     }
+
+    return Promise.resolve(true);
   }
 
   async onDeleted() {
@@ -59,9 +58,11 @@ class PlejdDevice extends Homey.Device {
 
     if (driver.getDevices().length === 0) {
       if (driver.keepConnectionAlive) {
-        await driver.disconnect();
+        return await driver.disconnect();
       }
     }
+
+    return Promise.resolve(true);
   }
 
 }

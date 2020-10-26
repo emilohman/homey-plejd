@@ -47,12 +47,8 @@
 
             logoutElement.addEventListener('click', function(e) {
 
-              Homey.set('username', null, function(err) {
+              Homey.set('sessionToken', null, function(err) {
   	            if (err) return Homey.alert(err);
-              });
-
-              Homey.set('password', null, function(err) {
-                if (err) return Homey.alert(err);
               });
 
               Homey.alert(__("settings.logoutSuccess"));
