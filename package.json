@@ -10,6 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "buffer-xor": "^2.0.2",
-    "axios": "^0.19.0"
+    "axios": "^0.21.1"
   }
 }
