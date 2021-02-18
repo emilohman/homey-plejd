@@ -10,5 +10,8 @@
   },
   "1.0.2": {
     "en": "Login and stability improvements"
+  },
+  "2.0.0": {
+    "en": "Get state using polling, sync Plejd internal clock and now using keepalive connection as default."
   }
 }
