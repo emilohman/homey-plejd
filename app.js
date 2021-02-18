@@ -8,6 +8,7 @@ class PlejdApp extends Homey.App {
     this.log('PlejdApp is running...');
     Homey.ManagerSettings.unset('username');
     Homey.ManagerSettings.unset('password');
+    Homey.ManagerSettings.unset('keepalive');
   }
 }
 
