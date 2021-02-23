@@ -5,7 +5,7 @@ const Homey = require('homey');
 class PlejdDevice extends Homey.Device {
 
   async onInit() {
-    const driver = this.getDriver();
+    const driver = this.driver;
     this.log('Plejd Device (' + this.getName() + ') initialized');
     this.log('id: ', this.getData().id);
     this.log('plejdId: ', this.getData().plejdId);
