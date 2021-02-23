@@ -13,5 +13,8 @@
   },
   "2.0.0": {
     "en": "Get state using polling, sync Plejd internal clock and now using keepalive connection as default."
+  },
+  "2.0.1": {
+    "en": "Prepend room name to devices"
   }
 }
