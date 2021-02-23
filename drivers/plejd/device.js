@@ -71,9 +71,7 @@ class PlejdDevice extends Homey.Device {
     this.log('count ', driver.getDevices().length);
 
     if (driver.getDevices().length === 1) {
-      if (driver.keepConnectionAlive) {
-        return await driver.connect();
-      }
+      await driver.connect();
     }
 
     return Promise.resolve(true);
@@ -88,9 +86,7 @@ class PlejdDevice extends Homey.Device {
     this.stopGettingState();
 
     if (driver.getDevices().length === 0) {
-      if (driver.keepConnectionAlive) {
-        return await driver.disconnect();
-      }
+      await driver.disconnect();
     }
 
     return Promise.resolve(true);

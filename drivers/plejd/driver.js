@@ -223,6 +223,7 @@ class PlejdDriver extends Homey.Driver {
   async disconnect() {
     this.isDisconnecting = true;
     this.log('Plejd disconnecting');
+    this.stopPollingState();
     clearInterval(this.pingIndex);
 
     if (this.peripheral) {
@@ -318,6 +319,7 @@ class PlejdDriver extends Homey.Driver {
       for (const device of this.getDevices()) {
         const state = await this.getState(device.getData().plejdId);
         device.setState(state);
+        this.sleep(200);
       }
 
       await this.startPollingState();
@@ -326,6 +328,12 @@ class PlejdDriver extends Homey.Driver {
 
   stopPollingState() {
     clearTimeout(this.pollingIndex);
+  }
+
+  sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   async getState(id) {
@@ -363,12 +371,16 @@ class PlejdDriver extends Homey.Driver {
 
   async turnOn(id, brightness) {
     //this.log('turfOn', id, brightness || '');
-    return await this.plejdWrite(this.plejdCommands.deviceOn(id, brightness));
+    if (this.plejdCommands) {
+      return await this.plejdWrite(this.plejdCommands.deviceOn(id, brightness));
+    }
   }
 
   async turnOff(id) {
     //this.log('turfOff', id);
-    return await this.plejdWrite(this.plejdCommands.deviceOff(id));
+    if (this.plejdCommands) {
+      return await this.plejdWrite(this.plejdCommands.deviceOff(id));
+    }
   }
 
   async startPing() {
