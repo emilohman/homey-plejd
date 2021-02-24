@@ -10,6 +10,7 @@ class PlejdApp extends Homey.App {
     this.homey.settings.unset('password');
     this.homey.settings.unset('keepalive');
   }
+
 }
 
 module.exports = PlejdApp;

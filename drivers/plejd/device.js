@@ -5,21 +5,21 @@ const Homey = require('homey');
 class PlejdDevice extends Homey.Device {
 
   async onInit() {
-    const driver = this.driver;
-    this.log('Plejd Device (' + this.getName() + ') initialized');
+    const { driver } = this;
+    this.log(`Plejd Device (${this.getName()}) initialized`);
     this.log('id: ', this.getData().id);
     this.log('plejdId: ', this.getData().plejdId);
     this.log('count: ', driver.getDevices().length);
 
-    this.registerCapabilityListener("onoff", async value => {
+    this.registerCapabilityListener('onoff', async value => {
       // this.log(`Power is set to: ${value} for id ${this.getData().plejdId}`);
 
       this.stopGettingState();
       let toggleResult;
       if (value) {
-        toggleResult = await driver.turnOn(parseInt(this.getData().plejdId));
+        toggleResult = await driver.turnOn(this.getData().plejdId);
       } else {
-        toggleResult = await driver.turnOff(parseInt(this.getData().plejdId));
+        toggleResult = await driver.turnOff(this.getData().plejdId);
       }
       this.startGettingState();
 
@@ -27,12 +27,12 @@ class PlejdDevice extends Homey.Device {
     });
 
     if (this.getData().dimmable) {
-      this.registerCapabilityListener("dim", async value => {
-        //this.log(`Brightness is set to ${value}`);
+      this.registerCapabilityListener('dim', async value => {
+        // this.log(`Brightness is set to ${value}`);
 
         this.stopGettingState();
         let toggleResult;
-        const brightness = parseInt(255 * value);
+        const brightness = parseInt(255 * value, 10);
         if (brightness === 0) {
           toggleResult = await driver.turnOff(this.getData().plejdId);
         } else {
@@ -54,12 +54,12 @@ class PlejdDevice extends Homey.Device {
 
   stopGettingState() {
     this.receiveState = false;
-    clearTimeout(this.gettingStateIndex);
+    this.homey.clearTimeout(this.gettingStateIndex);
   }
 
   startGettingState() {
-    clearTimeout(this.gettingStateIndex);
-    this.gettingStateIndex = setTimeout(() => {
+    this.homey.clearTimeout(this.gettingStateIndex);
+    this.gettingStateIndex = this.homey.setTimeout(() => {
       this.receiveState = true;
     }, 10000);
   }
@@ -67,7 +67,7 @@ class PlejdDevice extends Homey.Device {
   async onAdded() {
     const driver = this.getDriver();
 
-    this.log('Adding device: ' + this.getName() + ' (' + this.getData().id + ')');
+    this.log(`Adding device: ${this.getName()} (${this.getData().id})`);
     this.log('count ', driver.getDevices().length);
 
     if (driver.getDevices().length === 1) {
@@ -80,7 +80,7 @@ class PlejdDevice extends Homey.Device {
   async onDeleted() {
     const driver = this.getDriver();
 
-    this.log('device deleted: ' + this.getName());
+    this.log(`device deleted: ${this.getName()}`);
     this.log('count ', driver.getDevices().length);
 
     this.stopGettingState();
