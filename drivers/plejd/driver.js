@@ -19,11 +19,9 @@ class PlejdDriver extends Homey.Driver {
     this.homey.on('unload', async () => {
       this.stopPollingState();
 
+      this.homey.clearInterval(this.syncTimeIndex);
+
       await this.disconnect();
-
-      clearInterval(this.syncTimeIndex);
-
-      return Promise.resolve(true);
     });
 
     if (this.getDevices().length > 0) {
@@ -34,11 +32,11 @@ class PlejdDriver extends Homey.Driver {
   async reconnect() {
     await this.disconnect();
 
-    setTimeout(async () => {
+    this.homey.setTimeout(async () => {
       const connectOk = await this.connect();
 
       if (!connectOk) {
-        setTimeout(async () => {
+        this.homey.setTimeout(async () => {
           this.reconnect();
         }, 30000);
         return Promise.resolve(false);
@@ -205,7 +203,7 @@ class PlejdDriver extends Homey.Driver {
       await this.plejdWriteFromList();
 
       await this.syncTime();
-      this.syncTimeIndex = setInterval(async () => {
+      this.syncTimeIndex = this.homey.setInterval(async () => {
         await this.syncTime();
       }, 60000 * 60);
 
@@ -224,7 +222,7 @@ class PlejdDriver extends Homey.Driver {
     this.isDisconnecting = true;
     this.log('Plejd disconnecting');
     this.stopPollingState();
-    clearInterval(this.pingIndex);
+    this.homey.clearInterval(this.pingIndex);
 
     if (this.peripheral) {
       try {
@@ -314,8 +312,8 @@ class PlejdDriver extends Homey.Driver {
   }
 
   async startPollingState() {
-    clearTimeout(this.pollingIndex);
-    this.pollingIndex = setTimeout(async () => {
+    this.homey.clearTimeout(this.pollingIndex);
+    this.pollingIndex = this.homey.setTimeout(async () => {
       for (const device of this.getDevices()) {
         const state = await this.getState(device.getData().plejdId);
         device.setState(state);
@@ -327,12 +325,12 @@ class PlejdDriver extends Homey.Driver {
   }
 
   stopPollingState() {
-    clearTimeout(this.pollingIndex);
+    this.homey.clearTimeout(this.pollingIndex);
   }
 
   sleep(ms) {
     return new Promise((resolve) => {
-      setTimeout(resolve, ms);
+      this.homey.setTimeout(resolve, ms);
     });
   }
 
@@ -384,8 +382,8 @@ class PlejdDriver extends Homey.Driver {
   }
 
   async startPing() {
-    clearInterval(this.pingIndex);
-    this.pingIndex = setInterval(async () => {
+    this.homey.clearInterval(this.pingIndex);
+    this.pingIndex = this.homey.setInterval(async () => {
       if (this.isConnected) {
         var pingOk = await this.plejdPing();
 
