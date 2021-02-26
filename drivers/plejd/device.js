@@ -11,6 +11,8 @@ class PlejdDevice extends Homey.Device {
     this.log('plejdId: ', this.getData().plejdId);
     this.log('count: ', driver.getDevices().length);
 
+    this.receiveState = true;
+
     this.registerCapabilityListener("onoff", async value => {
       // this.log(`Power is set to: ${value} for id ${this.getData().plejdId}`);
 
@@ -61,7 +63,7 @@ class PlejdDevice extends Homey.Device {
     clearTimeout(this.gettingStateIndex);
     this.gettingStateIndex = setTimeout(() => {
       this.receiveState = true;
-    }, 10000);
+    }, 2000);
   }
 
   async onAdded() {
