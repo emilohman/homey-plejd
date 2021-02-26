@@ -22,5 +22,8 @@
   },
   "2.0.3": {
     "en": "Fixed getting state issue"
+  },
+  "2.0.4": {
+    "en": "Fixed state and time issues"
   }
 }
