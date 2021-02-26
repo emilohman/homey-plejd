@@ -19,5 +19,8 @@
   },
   "2.0.2": {
     "en": "Get state using polling, sync Plejd internal clock and now using keepalive connection as default."
+  },
+  "2.0.3": {
+    "en": "Fixed getting state issue"
   }
 }
