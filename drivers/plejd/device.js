@@ -68,7 +68,7 @@ class PlejdDevice extends Homey.Device {
   }
 
   async onAdded() {
-    const driver = this.getDriver();
+    const { driver } = this;
 
     this.log(`Adding device: ${this.getName()} (${this.getData().id})`);
     this.log('count ', driver.getDevices().length);
@@ -81,7 +81,7 @@ class PlejdDevice extends Homey.Device {
   }
 
   async onDeleted() {
-    const driver = this.getDriver();
+    const { driver } = this;
 
     this.log(`device deleted: ${this.getName()}`);
     this.log('count ', driver.getDevices().length);
