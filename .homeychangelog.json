@@ -25,5 +25,8 @@
   },
   "2.0.4": {
     "en": "Fixed state and time issues"
+  },
+  "3.0.0": {
+    "en": "Support for sdk v3"
   }
 }
