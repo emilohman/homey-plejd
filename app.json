@@ -1,8 +1,8 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "2.0.3",
-  "compatibility": ">=2.1.2",
-  "sdk": 2,
+  "version": "2.0.2",
+  "compatibility": ">=5.0.0",
+  "sdk": 3,
   "brandColor": "#48c5d6",
   "name": {
     "en": "Plejd"

@@ -4,11 +4,18 @@
   "description": "Adds support for Plejd devices.",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "eslint_fix": "eslint --fix ."
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "axios": "0.21.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.20.0",
+    "eslint-config-athom": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=12.16.1"
   }
 }

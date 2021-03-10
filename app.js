@@ -6,10 +6,11 @@ class PlejdApp extends Homey.App {
 
   async onInit() {
     this.log('PlejdApp is running...');
-    Homey.ManagerSettings.unset('username');
-    Homey.ManagerSettings.unset('password');
-    Homey.ManagerSettings.unset('keepalive');
+    this.homey.settings.unset('username');
+    this.homey.settings.unset('password');
+    this.homey.settings.unset('keepalive');
   }
+
 }
 
 module.exports = PlejdApp;

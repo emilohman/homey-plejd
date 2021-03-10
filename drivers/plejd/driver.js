@@ -2,8 +2,8 @@
 
 const Homey = require('homey');
 
-const api = require('/lib/api');
-const plejd = require('/lib/plejd');
+const api = require('../../lib/api');
+const plejd = require('../../lib/plejd');
 
 class PlejdDriver extends Homey.Driver {
 
@@ -16,14 +16,12 @@ class PlejdDriver extends Homey.Driver {
     this.writeList = [];
     this.plejdCommands = null;
 
-    Homey.on("unload", async () => {
+    this.homey.on('unload', async () => {
       this.stopPollingState();
 
+      this.homey.clearInterval(this.syncTimeIndex);
+
       await this.disconnect();
-
-      clearInterval(this.syncTimeIndex);
-
-      return Promise.resolve(true);
     });
 
     if (this.getDevices().length > 0) {
@@ -34,11 +32,11 @@ class PlejdDriver extends Homey.Driver {
   async reconnect() {
     await this.disconnect();
 
-    setTimeout(async () => {
+    this.homey.setTimeout(async () => {
       const connectOk = await this.connect();
 
       if (!connectOk) {
-        setTimeout(async () => {
+        this.homey.setTimeout(async () => {
           this.reconnect();
         }, 30000);
         return Promise.resolve(false);
@@ -60,14 +58,14 @@ class PlejdDriver extends Homey.Driver {
 
     this.isConnecting = true;
 
-    let cryptokey = Homey.ManagerSettings.get('cryptokey');
+    const cryptokey = this.homey.settings.get('cryptokey');
 
     if (!cryptokey) {
       this.log('No cryptokey exists.');
       return Promise.resolve(false);
     }
 
-    let meshUUID = Homey.ManagerSettings.get('plejd_mesh');
+    const meshUUID = this.homey.settings.get('plejd_mesh');
 
     let device;
 
@@ -75,13 +73,13 @@ class PlejdDriver extends Homey.Driver {
       this.log('Using saved mesh uuid', meshUUID);
 
       try {
-        device = await Homey.ManagerBLE.find(meshUUID.replace(/\:/g, ''));
+        device = await this.homey.ble.find(meshUUID.replace(/:/g, ''));
       } catch (error) {
-        Homey.ManagerSettings.set('plejd_mesh', null);
+        this.homey.settings.set('plejd_mesh', null);
         this.isConnecting = false;
         this.log(`error connecting: ${error}`);
 
-        return await this.reconnect();
+        return this.reconnect();
       }
     } else {
       let list = [];
@@ -91,11 +89,11 @@ class PlejdDriver extends Homey.Driver {
 
       for (let retries = 0; retries < 10; retries++) {
         try {
-          list = await Homey.ManagerBLE.discover([plejd.PLEJD_SERVICE]);
+          list = await this.homey.ble.discover([plejd.PLEJD_SERVICE]);
         } catch (error) {
           this.isConnecting = false;
           this.error(`error discovering: ${error}`);
-          return await this.reconnect();
+          return this.reconnect();
         }
 
         if (list.length === 0) {
@@ -110,8 +108,8 @@ class PlejdDriver extends Homey.Driver {
         return Promise.resolve(false);
       }
 
-      for (let i = 0, length = list.length; i < length; i++) {
-        let d = list[i];
+      for (let i = 0, { length } = list; i < length; i++) {
+        const d = list[i];
         if (d.localName === 'P mesh') {
           device = d;
           break;
@@ -124,7 +122,7 @@ class PlejdDriver extends Homey.Driver {
       }
 
       this.log('Saving mesh uuid for later use', device.uuid);
-      Homey.ManagerSettings.set('plejd_mesh', device.uuid);
+      this.homey.settings.set('plejd_mesh', device.uuid);
     }
 
     if (device.__peripheral) {
@@ -137,20 +135,20 @@ class PlejdDriver extends Homey.Driver {
       this.peripheral = await device.connect();
     } catch (error) {
       this.isConnecting = false;
-      Homey.ManagerSettings.set('plejd_mesh', null);
+      this.homey.settings.set('plejd_mesh', null);
       this.error(`error connecting to peripheral: ${error}`);
-      return await this.reconnect();
+      return this.reconnect();
     }
 
     this.log('discoverAllServicesAndCharacteristics');
 
     try {
-      const sac = await this.peripheral.discoverAllServicesAndCharacteristics();
+      await this.peripheral.discoverAllServicesAndCharacteristics();
     } catch (error) {
       this.isConnecting = false;
-      Homey.ManagerSettings.set('plejd_mesh', null);
+      this.homey.settings.set('plejd_mesh', null);
       this.log(`error discoverAllServicesAndCharacteristics: ${error}`);
-      return await this.reconnect();
+      return this.reconnect();
     }
 
     this.log('getService');
@@ -161,13 +159,13 @@ class PlejdDriver extends Homey.Driver {
       service = await this.peripheral.getService(plejd.PLEJD_SERVICE);
     } catch (error) {
       this.isConnecting = false;
-      Homey.ManagerSettings.set('plejd_mesh', null);
+      this.homey.settings.set('plejd_mesh', null);
       this.log(`error getService: ${error}`);
-      return await this.reconnect();
+      return this.reconnect();
     }
 
-    service.characteristics.forEach(function(characteristic) {
-      //self.log('Characteristic', characteristic);
+    service.characteristics.forEach(characteristic => {
+      // self.log('Characteristic', characteristic);
 
       if (plejd.DATA_UUID === characteristic.uuid) {
         self.dataCharacteristic = characteristic;
@@ -182,20 +180,23 @@ class PlejdDriver extends Homey.Driver {
       }
     });
 
-    if (this.dataCharacteristic &&
-          this.lastDataCharacteristic &&
-          this.lightLevelCharacteristic &&
-          this.authCharacteristic &&
-          this.pingCharacteristic) {
-
-      this.plejdCommands = new plejd.Commands(cryptokey, this.peripheral.address);
+    if (this.dataCharacteristic
+          && this.lastDataCharacteristic
+          && this.lightLevelCharacteristic
+          && this.authCharacteristic
+          && this.pingCharacteristic) {
+      this.plejdCommands = new plejd.Commands(
+        cryptokey,
+        this.peripheral.address,
+        this.homey.clock.getTimezone(),
+      );
 
       try {
         await this.authenticate();
       } catch (error) {
         this.isConnecting = false;
         this.log(`error authenticating: ${error}`);
-        return await this.reconnect();
+        return this.reconnect();
       }
 
       this.isConnected = true;
@@ -205,7 +206,7 @@ class PlejdDriver extends Homey.Driver {
       await this.plejdWriteFromList();
 
       await this.syncTime();
-      this.syncTimeIndex = setInterval(async () => {
+      this.syncTimeIndex = this.homey.setInterval(async () => {
         await this.syncTime();
       }, 60000 * 60);
 
@@ -217,14 +218,14 @@ class PlejdDriver extends Homey.Driver {
     }
 
     this.log('Error connecting. Not all characteristics found.');
-    return await this.reconnect();
+    return this.reconnect();
   }
 
   async disconnect() {
     this.isDisconnecting = true;
     this.log('Plejd disconnecting');
     this.stopPollingState();
-    clearInterval(this.pingIndex);
+    this.homey.clearInterval(this.pingIndex);
 
     if (this.peripheral) {
       try {
@@ -244,14 +245,16 @@ class PlejdDriver extends Homey.Driver {
 
   async authenticate() {
     this.log('authenticating');
-    //this.log('authenticate write');
+    // this.log('authenticate write');
     await this.authCharacteristic.write(this.plejdCommands.authenticateInitialize(), false);
 
-    //this.log('authenticate read');
-    var data = await this.authCharacteristic.read();
+    // this.log('authenticate read');
+    const data = await this.authCharacteristic.read();
 
-    //this.log('authenticate write response');
-    await this.authCharacteristic.write(this.plejdCommands.authenticateChallengeResponse(data), false);
+    // this.log('authenticate write response');
+    await this.authCharacteristic.write(
+      this.plejdCommands.authenticateChallengeResponse(data), false,
+    );
 
     this.log('authenticating done');
 
@@ -261,7 +264,7 @@ class PlejdDriver extends Homey.Driver {
   async syncTime() {
     const devices = this.getDevices();
 
-    //this.log('Sync time');
+    this.log('Sync time');
 
     if (devices.length) {
       await this.plejdWrite(this.plejdCommands.timeGet(devices[0].getData().plejdId));
@@ -289,13 +292,13 @@ class PlejdDriver extends Homey.Driver {
         return Promise.resolve(true);
       }
 
-      //this.log('Write to dataCharacteristic');
+      // this.log('Write to dataCharacteristic');
       await this.dataCharacteristic.write(data, false);
 
       await this.plejdWriteFromList();
 
       return Promise.resolve(true);
-    } catch(error) {
+    } catch (error) {
       this.error(error);
       return Promise.resolve(false);
     }
@@ -304,6 +307,7 @@ class PlejdDriver extends Homey.Driver {
   async plejdWriteFromList() {
     if (this.writeList.length > 0) {
       let writeData;
+      // eslint-disable-next-line no-cond-assign
       while ((writeData = this.writeList.shift()) !== undefined) {
         this.log('Write to dataCharacteristic from write list');
         await this.dataCharacteristic.write(writeData, false);
@@ -314,8 +318,8 @@ class PlejdDriver extends Homey.Driver {
   }
 
   async startPollingState() {
-    clearTimeout(this.pollingIndex);
-    this.pollingIndex = setTimeout(async () => {
+    this.homey.clearTimeout(this.pollingIndex);
+    this.pollingIndex = this.homey.setTimeout(async () => {
       for (const device of this.getDevices()) {
         const state = await this.getState(device.getData().plejdId);
         device.setState(state);
@@ -327,12 +331,12 @@ class PlejdDriver extends Homey.Driver {
   }
 
   stopPollingState() {
-    clearTimeout(this.pollingIndex);
+    this.homey.clearTimeout(this.pollingIndex);
   }
 
   sleep(ms) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, ms);
+    return new Promise(resolve => {
+      this.homey.setTimeout(resolve, ms);
     });
   }
 
@@ -352,44 +356,46 @@ class PlejdDriver extends Homey.Driver {
 
         // this.log('getState write', states);
 
-        states.forEach((state) => {
+        states.forEach(state => {
           if (state.id === id) {
             deviceState = state;
           }
         });
 
         return Promise.resolve(deviceState);
-
-      } else {
-        return Promise.resolve(false);
       }
-    } catch(error) {
+      return Promise.resolve(false);
+    } catch (error) {
       this.error(error);
       return Promise.resolve(false);
     }
   }
 
   async turnOn(id, brightness) {
-    //this.log('turfOn', id, brightness || '');
+    // this.log('turfOn', id, brightness || '');
     if (this.plejdCommands) {
-      return await this.plejdWrite(this.plejdCommands.deviceOn(id, brightness));
+      return this.plejdWrite(this.plejdCommands.deviceOn(id, brightness));
     }
+
+    return Promise.resolve(false);
   }
 
   async turnOff(id) {
-    //this.log('turfOff', id);
+    // this.log('turfOff', id);
     if (this.plejdCommands) {
-      return await this.plejdWrite(this.plejdCommands.deviceOff(id));
+      return this.plejdWrite(this.plejdCommands.deviceOff(id));
     }
+
+    return Promise.resolve(false);
   }
 
   async startPing() {
-    clearInterval(this.pingIndex);
-    this.pingIndex = setInterval(async () => {
+    this.homey.clearInterval(this.pingIndex);
+    this.pingIndex = this.homey.setInterval(async () => {
       if (this.isConnected) {
-        var pingOk = await this.plejdPing();
+        const pingOk = await this.plejdPing();
 
-        //this.log('ping', pingOk);
+        // this.log('ping', pingOk);
         if (pingOk === false) {
           this.log('ping not ok, reconnect.');
           await this.reconnect();
@@ -402,62 +408,63 @@ class PlejdDriver extends Homey.Driver {
     }, 30000); // 30s
 
     return Promise.resolve(true);
-  };
+  }
 
   async plejdPing() {
     try {
-      var ping = this.plejdCommands.pingInitialize();
+      const ping = this.plejdCommands.pingInitialize();
 
-      //this.log('ping', ping);
+      // this.log('ping', ping);
       await this.pingCharacteristic.write(ping, false);
-      var pong = await this.pingCharacteristic.read();
+      const pong = await this.pingCharacteristic.read();
 
-      //this.log('pong', pong);
+      // this.log('pong', pong);
 
       return Promise.resolve(this.plejdCommands.pingParsePong(ping, pong));
-    } catch(error) {
+    } catch (error) {
       this.error(`Ping error: ${error}`);
       return Promise.resolve(false);
     }
-  };
+  }
 
-  onPair(socket) {
-    let self = this,
-        plejdSites,
-        plejdApi;
+  onPair(session) {
+    const self = this;
+    let plejdSites;
+    let plejdApi;
 
-    socket.on('showView', async ( viewId, callback ) => {
+    session.setHandler('showView', async viewId => {
       if (viewId === 'login') {
         self.log('Try login');
 
-        let sessionToken = Homey.ManagerSettings.get('sessionToken');
+        const sessionToken = this.homey.settings.get('sessionToken');
 
         if (sessionToken) {
           plejdApi = new api.PlejdApi(null, null, sessionToken);
 
           self.log('Getting sites');
 
-          plejdApi.getSites((err, sites) => {
-            self.log('sites', sites);
+          const sites = await plejdApi.getSites();
 
-            if (err) {
-              Homey.ManagerSettings.set('sessionToken', null);
-              callback();
-            } else {
-              plejdSites = sites;
-              socket.nextView();
-              callback();
-            }
-          });
+          self.log('sites', sites);
+
+          if (sites) {
+            plejdSites = sites;
+            await session.nextView();
+          } else {
+            this.homey.settings.set('sessionToken', null);
+            return Promise.resolve(true);
+          }
         } else {
-          callback();
+          return Promise.resolve(true);
         }
       }
-   });
 
-    socket.on('login', ( data, callback ) => {
-      let username = data.username;
-      let password = data.password;
+      return Promise.resolve(true);
+    });
+
+    session.setHandler('login', async data => {
+      let { username } = data;
+      const { password } = data;
 
       if (username) {
         username = username.toLowerCase();
@@ -465,51 +472,43 @@ class PlejdDriver extends Homey.Driver {
 
       plejdApi = new api.PlejdApi(username, password);
 
-      plejdApi.once('loggedIn', (token) => {
-        Homey.ManagerSettings.set('sessionToken', token);
+      const token = await plejdApi.login();
 
-        callback(null, true);
-      });
-
-      plejdApi.once('loggedInError', () => {
-        callback(null, false);
-      });
-
-      plejdApi.login();
+      if (token) {
+        this.homey.settings.set('sessionToken', token);
+        return Promise.resolve(true);
+      }
+      return Promise.resolve(false);
     });
 
-    socket.on('getSites', ( data, callback ) => {
+    session.setHandler('getSites', async () => {
       self.log('Getting sites');
       if (plejdSites) {
-        callback(null, plejdSites);
-      } else {
-        plejdApi.getSites((err, sites) => {
-          self.log('sites', sites);
-
-          callback( null, sites );
-        });
+        return plejdSites;
       }
+      const sites = plejdApi.getSites();
+      self.log('sites', sites);
+
+      return sites;
     });
 
-    socket.on('saveSite', function( data, callback ) {
-      plejdApi.getSite(data.site, function(_site) {
-        self.log('Saving site: ' + data.site);
+    session.setHandler('saveSite', async data => {
+      await plejdApi.getSite(data.site);
+      self.log(`Saving site: ${data.site}`);
 
-        callback( null );
-      });
+      return null;
     });
 
-    socket.on('list_devices', ( data, callback ) => {
+    session.setHandler('list_devices', async () => {
+      const devices = [];
 
-      let devices = [];
+      const cryptoKey = plejdApi.getCryptoKey();
+      this.homey.settings.set('cryptokey', cryptoKey);
 
-      let cryptoKey = plejdApi.getCryptoKey();
-      Homey.ManagerSettings.set('cryptokey', cryptoKey);
+      const plejdDevices = plejdApi.getDevices();
 
-      let plejdDevices = plejdApi.getDevices();
-
-      plejdDevices.forEach(function(plejdDevice) {
-        let capabilities = ['onoff'];
+      plejdDevices.forEach(plejdDevice => {
+        const capabilities = ['onoff'];
 
         if (plejdDevice.dimmable) {
           capabilities.push('dim');
@@ -520,14 +519,13 @@ class PlejdDriver extends Homey.Driver {
           data: {
             id: plejdDevice.deviceId,
             plejdId: plejdDevice.id,
-            dimmable: plejdDevice.dimmable
+            dimmable: plejdDevice.dimmable,
           },
-          capabilities: capabilities
+          capabilities,
         });
       });
 
-      callback( null, devices );
-
+      return devices;
     });
   }
 
