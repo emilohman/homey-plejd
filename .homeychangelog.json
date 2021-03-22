@@ -28,5 +28,8 @@
   },
   "3.0.0": {
     "en": "Support for sdk v3"
+  },
+  "3.0.1": {
+    "en": "Stability improvements"
   }
 }
