@@ -318,12 +318,12 @@ class PlejdDriver extends Homey.Driver {
   }
 
   async startPollingState() {
-    this.homey.clearTimeout(this.pollingIndex);
+    this.stopPollingState();
     this.pollingIndex = this.homey.setTimeout(async () => {
       for (const device of this.getDevices()) {
         const state = await this.getState(device.getData().plejdId);
-        device.setState(state);
-        this.sleep(200);
+        await device.setState(state);
+        await this.sleep(200);
       }
 
       await this.startPollingState();

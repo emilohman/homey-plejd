@@ -49,9 +49,12 @@ class PlejdDevice extends Homey.Device {
 
   async setState(state) {
     if (state && this.receiveState) {
-      // this.log('Device reveiving state', this.getData().plejdId, state);
+      // this.log('Device reveiving state', this.getData().plejdId, this.getData().dimmable, state);
       await this.setCapabilityValue('onoff', state.state);
-      await this.setCapabilityValue('dim', state.dim / 255);
+
+      if (this.getData().dimmable) {
+        await this.setCapabilityValue('dim', state.dim / 255);
+      }
     }
   }
 
