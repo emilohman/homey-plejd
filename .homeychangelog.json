@@ -34,5 +34,8 @@
   },
   "3.0.2": {
     "en": "Stability improvements. Fixed memory leak."
+  },
+  "3.0.3": {
+    "en": "Fixed memory leak and Plejd clock"
   }
 }
