@@ -116,6 +116,8 @@ class PlejdDriver extends Homey.Driver {
         }
       }
 
+      list = null;
+
       if (!device) {
         this.isConnecting = false;
         return Promise.resolve(false);
@@ -180,6 +182,8 @@ class PlejdDriver extends Homey.Driver {
       }
     });
 
+    service = null;
+
     if (this.dataCharacteristic
           && this.lastDataCharacteristic
           && this.lightLevelCharacteristic
@@ -187,8 +191,8 @@ class PlejdDriver extends Homey.Driver {
           && this.pingCharacteristic) {
       this.plejdCommands = new plejd.Commands(
         cryptokey,
-        this.peripheral.address,
-        this.homey.clock.getTimezone(),
+        this.peripheral.address
+        // this.homey.clock.getTimezone(),
       );
 
       try {
@@ -206,10 +210,12 @@ class PlejdDriver extends Homey.Driver {
       await this.plejdWriteFromList();
 
       await this.syncTime();
+      /*
+      await this.syncTime();
       this.syncTimeIndex = this.homey.setInterval(async () => {
         await this.syncTime();
       }, 60000 * 60);
-
+      */
       this.startPollingState();
 
       this.log('Plejd is connected');
@@ -319,15 +325,19 @@ class PlejdDriver extends Homey.Driver {
 
   async startPollingState() {
     this.stopPollingState();
-    this.pollingIndex = this.homey.setTimeout(async () => {
-      for (const device of this.getDevices()) {
-        const state = await this.getState(device.getData().plejdId);
-        await device.setState(state);
-        await this.sleep(200);
-      }
+    const devices = this.getDevices();
 
+    for (const device of devices) {
+      const state = await this.getState(device.getData().plejdId);
+      await device.setState(state);
+      await this.sleep(200);
+    }
+
+    this.pollingIndex = this.homey.setTimeout(async () => {
       await this.startPollingState();
-    }, 2000);
+    }, 10000);
+
+    return Promise.resolve(true);
   }
 
   stopPollingState() {

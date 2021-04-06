@@ -56,6 +56,8 @@ class PlejdDevice extends Homey.Device {
         await this.setCapabilityValue('dim', state.dim / 255);
       }
     }
+
+    return Promise.resolve(true);
   }
 
   stopGettingState() {
