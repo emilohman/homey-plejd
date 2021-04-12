@@ -43,5 +43,8 @@
   },
   "3.0.5": {
     "en": "Fixed BLE connection issue"
+  },
+  "3.0.6": {
+    "en": "Fixed connection issue"
   }
 }
