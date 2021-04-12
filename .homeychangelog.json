@@ -40,5 +40,8 @@
   },
   "3.0.4": {
     "en": "Error handling"
+  },
+  "3.0.5": {
+    "en": "Fixed BLE connection issue"
   }
 }
