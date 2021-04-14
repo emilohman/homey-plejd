@@ -55,5 +55,8 @@
   },
   "3.1.2": {
     "en": "Realtime update"
+  },
+  "3.1.3": {
+    "en": "Added support for instant state change (requires Homey v6 and above)"
   }
 }
