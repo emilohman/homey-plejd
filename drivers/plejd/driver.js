@@ -10,6 +10,7 @@ class PlejdDriver extends Homey.Driver {
   async onInit() {
     this.log('Plejd driver has been inited');
 
+    this.devices = {};
     this.isDisconnecting = false;
     this.isConnecting = false;
     this.isConnected = false;
@@ -28,6 +29,14 @@ class PlejdDriver extends Homey.Driver {
     if (this.getDevices().length > 0) {
       await this.connect();
     }
+  }
+
+  registerDevice(device) {
+    this.devices[device.getData().plejdId] = device;
+  }
+
+  unregisterDevice(device) {
+    delete this.devices[device.getData().plejdId];
   }
 
   async reconnect() {
@@ -185,9 +194,8 @@ class PlejdDriver extends Homey.Driver {
       this.plejdCommands = new plejd.Commands(
         cryptokey,
         this.peripheral.address,
-          null,
+          null, // this.homey.clock.getTimezone(),
           { log: this.log, error: this.error }
-        // this.homey.clock.getTimezone(),
       );
 
       try {
@@ -201,7 +209,7 @@ class PlejdDriver extends Homey.Driver {
       this.isConnected = true;
       this.isConnecting = false;
 
-      this.startPing();
+      await this.startPing();
       await this.plejdWriteFromList();
 
       await this.syncTime();
@@ -211,7 +219,14 @@ class PlejdDriver extends Homey.Driver {
         await this.syncTime();
       }, 60000 * 60);
       */
-      this.startPollingState();
+
+      if (this.lastDataCharacteristic.subscribeToNotifications !== undefined) {
+        this.log('startSubscribe');
+        await this.startSubscribe();
+      } else {
+        this.log('startPollingState');
+        await this.startPollingState();
+      }
 
       this.log('Plejd is connected');
 
@@ -319,6 +334,47 @@ class PlejdDriver extends Homey.Driver {
     return Promise.resolve(true);
   }
 
+  async startSubscribe() {
+    await this.lastDataCharacteristic.subscribeToNotifications(async data => {
+      try {
+        const state = this.plejdCommands.notificationParse(data);
+
+        // this.log(`lastData subscribe: ${JSON.stringify(state)}`);
+
+        if (state && state.cmd === 'state') {
+          const device = this.devices[state.id];
+
+          if (device) {
+            await device.setState(state);
+          }
+        }
+      } catch (error) {
+        this.error(`lastData error: ${error}`);
+      }
+    });
+
+    await this.lightLevelCharacteristic.subscribeToNotifications(async data => {
+      try {
+        const states = this.plejdCommands.stateParse(data);
+
+        for (let i = 0, length = states.length; i < length; i++) {
+          const state = states[i];
+          const device = this.devices[state.id];
+
+          this.log(`lightLevel subscribe: ${JSON.stringify(state)}`);
+
+          if (device) {
+            await device.setState(state);
+          }
+        }
+      } catch (error) {
+        this.error(`lightLevel error: ${error}`);
+      }
+    });
+
+    await this.lightLevelCharacteristic.write(this.plejdCommands.stateGetAll(), false);
+  }
+
   async startPollingState() {
     this.stopPollingState();
     const devices = this.getDevices();
@@ -361,13 +417,13 @@ class PlejdDriver extends Homey.Driver {
         const states = this.plejdCommands.stateParse(stateResponse);
         let deviceState = null;
 
-        // this.log('getState write', states);
-
         states.forEach(state => {
           if (state.id === id) {
             deviceState = state;
           }
         });
+
+        // this.log(`getState: ${JSON.stringify(deviceState)}`);
 
         return Promise.resolve(deviceState);
       }
