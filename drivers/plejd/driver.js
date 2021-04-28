@@ -40,7 +40,6 @@ class PlejdDriver extends Homey.Driver {
   }
 
   async reconnect() {
-    this.log('Reconnecting');
     await this.disconnect();
 
     this.homey.setTimeout(async () => {
@@ -49,12 +48,12 @@ class PlejdDriver extends Homey.Driver {
 
       if (!connectOk) {
         this.homey.setTimeout(async () => {
-          this.reconnect();
+          await this.reconnect();
         }, 30000);
         return Promise.resolve(false);
       }
       return Promise.resolve(true);
-    }, 500);
+    }, 2000);
 
     return Promise.resolve(true);
   }
@@ -100,8 +99,14 @@ class PlejdDriver extends Homey.Driver {
       this.log('discover');
 
       for (let retries = 0; retries < 10; retries++) {
+        let timeout = 15000;
+
+        if (retries > 0) {
+          timeout = 30000;
+        }
+
         try {
-          advertisements = await this.homey.ble.discover([plejd.PLEJD_SERVICE], 10000);
+          advertisements = await this.homey.ble.discover([plejd.PLEJD_SERVICE], timeout);
         } catch (error) {
           this.isConnecting = false;
           this.error(`error discovering: ${error}`);
@@ -110,6 +115,7 @@ class PlejdDriver extends Homey.Driver {
 
         if (advertisements.length === 0) {
           this.error('No plejd device found');
+          await this.sleep(5000);
         } else {
           break;
         }
@@ -120,8 +126,10 @@ class PlejdDriver extends Homey.Driver {
         return Promise.resolve(false);
       }
 
-      for (let i = 0, { length } = advertisements; i < length; i++) {
-        const advertisement = advertisements[i];
+      const sortedAdvertisements = advertisements.sort((a, b) => b.rssi - a.rssi)
+
+      for (let i = 0, { length } = sortedAdvertisements; i < length; i++) {
+        const advertisement = sortedAdvertisements[i];
         if (advertisement.localName === 'P mesh') {
           currentAdvertisement = advertisement;
           break;
@@ -239,7 +247,6 @@ class PlejdDriver extends Homey.Driver {
 
   async disconnect() {
     this.isDisconnecting = true;
-    this.log('Plejd disconnecting');
     this.stopPollingState();
     this.homey.clearInterval(this.pingIndex);
 
@@ -316,8 +323,10 @@ class PlejdDriver extends Homey.Driver {
 
       return Promise.resolve(true);
     } catch (error) {
+      this.log('Error while writing. Add write to list and reconnect.');
+      this.writeList.push(data);
       this.error(error);
-      return Promise.resolve(false);
+      return this.reconnect();
     }
   }
 
@@ -327,7 +336,12 @@ class PlejdDriver extends Homey.Driver {
       // eslint-disable-next-line no-cond-assign
       while ((writeData = this.writeList.shift()) !== undefined) {
         this.log('Write to dataCharacteristic from write list');
-        await this.dataCharacteristic.write(writeData, false);
+
+        try {
+          await this.dataCharacteristic.write(writeData, false);
+        } catch (error) {
+          this.error('Error writing from list', writeData, error);
+        }
       }
     }
 
@@ -469,7 +483,7 @@ class PlejdDriver extends Homey.Driver {
       }
 
       return Promise.resolve(true);
-    }, 30000); // 30s
+    }, 300000); // -30s- 5m
 
     return Promise.resolve(true);
   }

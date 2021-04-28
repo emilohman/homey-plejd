@@ -64,5 +64,8 @@
   },
   "3.1.5": {
     "en": "Fixed connection issues"
+  },
+  "3.1.6": {
+    "en": "Fixing connection issues"
   }
 }
