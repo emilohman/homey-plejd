@@ -46,7 +46,7 @@ class PlejdDevice extends Homey.Device {
       });
     }
 
-    driver.registerDevice(this);
+    await driver.registerDevice(this);
   }
 
   async setState(state) {
@@ -80,7 +80,7 @@ class PlejdDevice extends Homey.Device {
     this.log(`Adding device: ${this.getName()} (${this.getData().id})`);
     this.log('count ', driver.getDevices().length);
 
-    driver.registerDevice(this);
+    await driver.registerDevice(this);
 
     if (driver.getDevices().length === 1) {
       await driver.connect();

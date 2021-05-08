@@ -33,8 +33,10 @@ class PlejdDriver extends Homey.Driver {
     }
   }
 
-  registerDevice(device) {
+  async registerDevice(device) {
     this.devices[device.getData().plejdId] = device;
+
+    await this.getDevicesState();
   }
 
   unregisterDevice(device) {
@@ -353,6 +355,15 @@ class PlejdDriver extends Homey.Driver {
     return Promise.resolve(true);
   }
 
+  async getDevicesState() {
+    this.homey.clearTimeout(this.getDeviceStateIndex);
+    this.getDeviceStateIndex = this.homey.setTimeout(async () => {
+      if (this.lightLevelCharacteristic && this.plejdCommands) {
+        await this.lightLevelCharacteristic.write(this.plejdCommands.stateGetAll());
+      }
+    }, 500);
+  }
+
   async startSubscribe() {
     await this.lastDataCharacteristic.subscribeToNotifications(async data => {
       try {
@@ -391,7 +402,7 @@ class PlejdDriver extends Homey.Driver {
       }
     });
 
-    await this.lightLevelCharacteristic.write(this.plejdCommands.stateGetAll());
+    await this.getDevicesState();
   }
 
   async startPollingState() {
