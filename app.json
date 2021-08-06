@@ -1,6 +1,6 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#48c5d6",
@@ -100,8 +100,8 @@
       "class": "button",
       "capabilities": [],
       "images": {
-        "large": "/drivers/plejd/assets/images/large.png",
-        "small": "/drivers/plejd/assets/images/small.png"
+        "large": "/drivers/button/assets/images/large.png",
+        "small": "/drivers/button/assets/images/small.png"
       },
       "pair": [
         {
