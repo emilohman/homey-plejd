@@ -1,6 +1,6 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "3.1.12",
+  "version": "3.2.0",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#48c5d6",
@@ -91,6 +91,121 @@
           "template": "add_devices"
         }
       ]
+    },
+    {
+      "id": "button",
+      "name": {
+        "en": "Plejd button"
+      },
+      "class": "button",
+      "capabilities": [],
+      "images": {
+        "large": "/drivers/plejd/assets/images/large.png",
+        "small": "/drivers/plejd/assets/images/small.png"
+      },
+      "pair": [
+        {
+          "id": "login",
+          "template": "login_credentials",
+          "options": {
+            "logo": "../../../assets/images/large.png"
+          }
+        },
+        {
+          "id": "site",
+          "navigation": {
+            "prev": "login"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "prev": "site",
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ]
     }
-  ]
+  ],
+  "flow": {
+    "triggers": [
+      {
+        "id": "button_pressed",
+        "title": {
+          "en": "A button has been pressed"
+        },
+        "tokens": [
+          {
+            "name": "button",
+            "type": "number",
+            "title": {
+              "en": "Button"
+            },
+            "example": 2
+          }
+        ],
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=button"
+          }
+        ]
+      },
+      {
+        "id": "button_pressed2",
+        "title": {
+          "en": "Button ... has been pressed"
+        },
+        "titleFormatted": {
+          "en": "Button [[button]] has been pressed"
+        },
+        "args": [
+          {
+            "type": "dropdown",
+            "name": "button",
+            "title": {
+              "en": "Button number"
+            },
+            "values": [
+              {
+                "id": "1",
+                "label": {
+                  "en": "1"
+                }
+              },
+              {
+                "id": "2",
+                "label": {
+                  "en": "2"
+                }
+              },
+              {
+                "id": "3",
+                "label": {
+                  "en": "3"
+                }
+              },
+              {
+                "id": "4",
+                "label": {
+                  "en": "4"
+                }
+              }
+            ]
+          },
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=button"
+          }
+        ]
+      }
+    ]
+  }
 }
