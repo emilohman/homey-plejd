@@ -1,6 +1,6 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#48c5d6",
@@ -176,25 +176,25 @@
               {
                 "id": "1",
                 "label": {
-                  "en": "1"
-                }
-              },
-              {
-                "id": "2",
-                "label": {
-                  "en": "2"
+                  "en": "Left up"
                 }
               },
               {
                 "id": "3",
                 "label": {
-                  "en": "3"
+                  "en": "Left down"
+                }
+              },
+              {
+                "id": "2",
+                "label": {
+                  "en": "Right up"
                 }
               },
               {
                 "id": "4",
                 "label": {
-                  "en": "4"
+                  "en": "Right down"
                 }
               }
             ]
