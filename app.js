@@ -164,9 +164,8 @@ class PlejdApp extends Homey.App {
           this.log(advertisement.localName, advertisement.uuid, advertisement.rssi, this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid));
         }
 
-        if (advertisement.localName === 'P mesh' && !this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid)) {
+        if (!currentAdvertisement && advertisement.localName === 'P mesh') { // && !this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid)
           currentAdvertisement = advertisement;
-          break;
         }
       }
 
@@ -400,25 +399,6 @@ class PlejdApp extends Homey.App {
   }
 
   async startSubscribe() {
-    //////////////////////////////////////
-    /*
-    this.log('Simulate button event');
-    const data = Buffer.from('c3f6d68d0d077ec881', 'hex');
-    const state = this.plejdCommands.notificationParse(data);
-
-    this.log('Button state', state);
-
-    if (state && state.cmd === 'state') {
-      const device = this.devices[state.id];
-
-      if (device) {
-        this.log('Found button device');
-        await device.setState(state);
-      }
-    }
-    */
-    //////////////////////////////////////
-
     await this.lastDataCharacteristic.subscribeToNotifications(async data => {
       try {
         const state = this.plejdCommands.notificationParse(data);
