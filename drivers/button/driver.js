@@ -4,7 +4,7 @@ const Homey = require('homey');
 
 const api = require('../../lib/api');
 
-class PlejdDriver extends Homey.Driver {
+class PlejdButtonDriver extends Homey.Driver {
 
   async onInit() {
     this.log('Plejd driver has been inited');
@@ -88,25 +88,27 @@ class PlejdDriver extends Homey.Driver {
       const cryptoKey = plejdApi.getCryptoKey();
       this.homey.settings.set('cryptokey', cryptoKey);
 
-      const plejdDevices = plejdApi.getDevices();
+      const plejdDevices = plejdApi.getDevices('button');
 
       plejdDevices.forEach(plejdDevice => {
-        const capabilities = ['onoff'];
-
-        if (plejdDevice.dimmable) {
-          capabilities.push('dim');
-        }
-
         devices.push({
           name: plejdDevice.name,
           data: {
             id: plejdDevice.deviceId,
-            plejdId: plejdDevice.id,
-            dimmable: plejdDevice.dimmable,
-          },
-          capabilities,
+            plejdId: plejdDevice.id
+          }
         });
       });
+
+      /*
+      devices.push({
+        name: 'Knapp hallen',
+        data: {
+          id: 'CA01C95C6BB9',
+          plejdId: 40
+        }
+      });
+      */
 
       return devices;
     });
@@ -114,4 +116,4 @@ class PlejdDriver extends Homey.Driver {
 
 }
 
-module.exports = PlejdDriver;
+module.exports = PlejdButtonDriver;

@@ -19,9 +19,9 @@ class PlejdDevice extends Homey.Device {
       this.stopGettingState();
       let toggleResult;
       if (value) {
-        toggleResult = await driver.turnOn(this.getData().plejdId);
+        toggleResult = await this.homey.app.turnOn(this.getData().plejdId);
       } else {
-        toggleResult = await driver.turnOff(this.getData().plejdId);
+        toggleResult = await this.homey.app.turnOff(this.getData().plejdId);
       }
       this.startGettingState();
 
@@ -36,9 +36,9 @@ class PlejdDevice extends Homey.Device {
         let toggleResult;
         const brightness = parseInt(255 * value, 10);
         if (brightness === 0) {
-          toggleResult = await driver.turnOff(this.getData().plejdId);
+          toggleResult = await this.homey.app.turnOff(this.getData().plejdId);
         } else {
-          toggleResult = await driver.turnOn(this.getData().plejdId, brightness);
+          toggleResult = await this.homey.app.turnOn(this.getData().plejdId, brightness);
         }
         this.startGettingState();
 
@@ -46,7 +46,7 @@ class PlejdDevice extends Homey.Device {
       });
     }
 
-    await driver.registerDevice(this);
+    await this.homey.app.registerDevice(this);
   }
 
   async setState(state) {
@@ -80,11 +80,7 @@ class PlejdDevice extends Homey.Device {
     this.log(`Adding device: ${this.getName()} (${this.getData().id})`);
     this.log('count ', driver.getDevices().length);
 
-    await driver.registerDevice(this);
-
-    if (driver.getDevices().length === 1) {
-      await driver.connect();
-    }
+    await this.homey.app.registerDevice(this);
 
     return Promise.resolve(true);
   }
@@ -95,13 +91,9 @@ class PlejdDevice extends Homey.Device {
     this.log(`device deleted: ${this.getName()}`);
     this.log('count ', driver.getDevices().length);
 
-    driver.unregisterDevice(this);
+    await this.homey.app.unregisterDevice(this);
 
     this.stopGettingState();
-
-    if (driver.getDevices().length === 0) {
-      await driver.disconnect();
-    }
 
     return Promise.resolve(true);
   }
