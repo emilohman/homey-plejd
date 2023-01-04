@@ -6,10 +6,7 @@ class PlejdButtonDevice extends Homey.Device {
 
   async onInit() {
     const { driver } = this;
-    this.log(`Plejd Device (${this.getName()}) initialized`);
-    this.log('id: ', this.getData().id);
-    this.log('plejdId: ', this.getData().plejdId);
-    this.log('count: ', driver.getDevices().length);
+    this.log(`Init button: ${this.getName()} id: ${this.getData().id} plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} hName: ${this.getStoreValue('hardwareName')} total: ${driver.getDevices().length}`);
 
     this.flowTriggerButtonPressed = this.homey.flow.getDeviceTriggerCard('button_pressed');
     this.flowTriggerButtonPressed2 = this.homey.flow.getDeviceTriggerCard('button_pressed2');

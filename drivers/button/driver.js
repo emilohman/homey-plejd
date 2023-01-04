@@ -22,7 +22,7 @@ class PlejdButtonDriver extends Homey.Driver {
         const sessionToken = this.homey.settings.get('sessionToken');
 
         if (sessionToken) {
-          plejdApi = new api.PlejdApi(null, null, sessionToken);
+          plejdApi = new api.PlejdApi(null, null, sessionToken, self.log);
 
           self.log('Getting sites');
 
@@ -53,7 +53,7 @@ class PlejdButtonDriver extends Homey.Driver {
         username = username.toLowerCase();
       }
 
-      plejdApi = new api.PlejdApi(username, password);
+      plejdApi = new api.PlejdApi(username, password, null, self.log);
 
       const token = await plejdApi.login();
 
@@ -96,7 +96,11 @@ class PlejdButtonDriver extends Homey.Driver {
           data: {
             id: plejdDevice.deviceId,
             plejdId: plejdDevice.id
-          }
+          },
+          store: {
+            hardwareName: plejdDevice.hardwareName,
+            hardwareId: plejdDevice.hardwareId
+          },
         });
       });
 

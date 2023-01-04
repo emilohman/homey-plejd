@@ -1,12 +1,15 @@
 'use strict';
 
 const Homey = require('homey');
+const { Log } = require('homey-log');
 
 const plejd = require('../../lib/plejd');
 
 class PlejdApp extends Homey.App {
 
   async onInit() {
+    this.homeyLog = new Log({ homey: this.homey });
+
     this.log('PlejdApp is running...');
 
     this.homey.settings.unset('username');
@@ -133,7 +136,7 @@ class PlejdApp extends Homey.App {
         }
 
         try {
-          advertisements = await this.homey.ble.discover([plejd.PLEJD_SERVICE], timeout);
+          advertisements = await this.homey.ble.discover();
         } catch (error) {
           this.isConnecting = false;
           this.error(`error discovering: ${error}`);
