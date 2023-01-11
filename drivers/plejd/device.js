@@ -6,7 +6,7 @@ class PlejdDevice extends Homey.Device {
 
   async onInit() {
     const { driver } = this;
-    this.log(`Init plejd: ${this.getName()} id: ${this.getData().id} plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} hName: ${this.getStoreValue('hardwareName')} total: ${driver.getDevices().length}`);
+    this.log(`Init plejd: ${this.getName()} id: ${this.getData().id} plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} hName: ${this.getStoreValue('hardwareName')} traits: ${this.getStoreValue('traits')} total: ${driver.getDevices().length}`);
 
     this.receiveState = true;
 
