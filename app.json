@@ -1,6 +1,6 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#48c5d6",
