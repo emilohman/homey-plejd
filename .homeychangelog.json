@@ -112,5 +112,8 @@
   },
   "3.3.1": {
     "en": "Support DAL-01 and LED-75"
+  },
+  "3.3.2": {
+    "en": "Stability improvements"
   }
 }
