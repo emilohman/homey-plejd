@@ -3,7 +3,7 @@
 const Homey = require('homey');
 const { Log } = require('homey-log');
 
-const plejd = require('../../lib/plejd');
+const plejd = require('./lib/plejd');
 
 class PlejdApp extends Homey.App {
 
@@ -21,6 +21,7 @@ class PlejdApp extends Homey.App {
     this.isDisconnecting = false;
     this.isConnecting = false;
     this.isConnected = false;
+    this.doReconnectDelay = false;
     this.writeList = [];
     this.plejdCommands = null;
     this.advertisementsNotWorking = [];
@@ -84,7 +85,15 @@ class PlejdApp extends Homey.App {
       await this.disconnect();
     }
 
-    return await this.connect();
+    // return
+    return new Promise(resolve => {
+      this.log('Reconnecting in', this.doReconnectDelay ? '1min' : '10s');
+      setTimeout(async () => {
+        this.doReconnectDelay = true;
+        await this.connect();
+        resolve();
+      }, this.doReconnectDelay ? 60000 : 10000);
+    });
   }
 
   async connect() {
@@ -262,7 +271,7 @@ class PlejdApp extends Homey.App {
       await this.startPing();
       await this.plejdWriteFromList();
 
-      await this.syncTime();
+      // await this.syncTime();
       /*
       await this.syncTime();
       this.syncTimeIndex = this.homey.setInterval(async () => {
