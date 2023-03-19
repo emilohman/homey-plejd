@@ -348,7 +348,17 @@ class PlejdApp extends Homey.App {
       }
     }
 
-    await this.setAllDevicesAsUnavailable();
+    this.dataCharacteristic = null;
+    this.lastDataCharacteristic = null;
+    this.authCharacteristic = null;
+    this.pingCharacteristic = null;
+    this.lightLevelCharacteristic = null;
+
+    try  {
+      await this.setAllDevicesAsUnavailable();
+    } catch (error) {
+      this.error(error);
+    }
 
     this.isDisconnecting = false;
     this.isConnecting = false;
@@ -441,7 +451,12 @@ class PlejdApp extends Homey.App {
     this.homey.clearTimeout(this.getDeviceStateIndex);
     this.getDeviceStateIndex = this.homey.setTimeout(async () => {
       if (this.lightLevelCharacteristic && this.plejdCommands) {
-        await this.lightLevelCharacteristic.write(this.plejdCommands.stateGetAll());
+        try {
+          await this.lightLevelCharacteristic.write(this.plejdCommands.stateGetAll());
+        } catch (error) {
+          this.log('Error while writing getDevicesState.');
+          this.error(error);
+        }
       }
     }, 500);
   }
