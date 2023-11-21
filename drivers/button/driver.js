@@ -95,11 +95,11 @@ class PlejdButtonDriver extends Homey.Driver {
           name: plejdDevice.name,
           data: {
             id: plejdDevice.deviceId,
-            plejdId: plejdDevice.id
+            plejdId: plejdDevice.id,
           },
           store: {
             hardwareName: plejdDevice.hardwareName,
-            hardwareId: plejdDevice.hardwareId
+            hardwareId: plejdDevice.hardwareId,
           },
         });
       });

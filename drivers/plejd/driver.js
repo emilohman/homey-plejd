@@ -102,14 +102,18 @@ class PlejdDriver extends Homey.Driver {
           data: {
             id: plejdDevice.deviceId,
             plejdId: plejdDevice.id,
-            dimmable: plejdDevice.dimmable
+            dimmable: plejdDevice.dimmable,
           },
           store: {
             hardwareName: plejdDevice.hardwareName,
             hardwareId: plejdDevice.hardwareId,
-            traits: plejdDevice.traits
+            traits: plejdDevice.traits,
           },
           capabilities,
+          class: plejdDevice.type,
+          settings: {
+            device_class: plejdDevice.type,
+          },
         });
       });
 

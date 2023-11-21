@@ -2,6 +2,8 @@
 
 const Homey = require('homey');
 
+const SETTING_DEVICE_CLASS = 'device_class';
+
 class PlejdDevice extends Homey.Device {
 
   async onInit() {
@@ -10,7 +12,7 @@ class PlejdDevice extends Homey.Device {
 
     this.receiveState = true;
 
-    this.registerCapabilityListener("onoff", async value => {
+    this.registerCapabilityListener('onoff', async value => {
       // this.log(`Power is set to: ${value} for id ${this.getData().plejdId}`);
 
       this.stopGettingState();
@@ -74,7 +76,7 @@ class PlejdDevice extends Homey.Device {
   async onAdded() {
     const { driver } = this;
 
-    this.log(`Adding device: ${this.getName()} (${this.getData().id})`);
+    this.log(`Adding device: ${this.getName()} (${this.getData().id}) ${this.getClass()}`);
     this.log('count ', driver.getDevices().length);
 
     await this.homey.app.registerDevice(this);
@@ -93,6 +95,12 @@ class PlejdDevice extends Homey.Device {
     this.stopGettingState();
 
     return Promise.resolve(true);
+  }
+
+  async onSettings({ newSettings, changedKeys }) {
+    if (changedKeys.some(key => key === SETTING_DEVICE_CLASS)) {
+      this.setClass(newSettings[SETTING_DEVICE_CLASS]);
+    }
   }
 
 }

@@ -90,6 +90,24 @@
           "id": "add_devices",
           "template": "add_devices"
         }
+      ],
+      "settings": [
+        {
+          "id": "device_class",
+          "type": "dropdown",
+          "value": "light",
+          "label": { "en": "Device class" },
+          "values": [
+            {
+              "id": "light",
+              "label": { "en": "Light" }
+            },
+            {
+              "id": "socket",
+              "label": { "en": "Socket" }
+            }
+          ]
+        }
       ]
     },
     {

@@ -26,12 +26,15 @@ class PlejdApp extends Homey.App {
     this.plejdCommands = null;
     this.advertisementsNotWorking = [];
     this.pingErrorCount = 0;
+    this.writeQueue = [];
 
     this.homey.on('unload', async () => {
       this.log('Unloading app');
       this.stopPollingState();
 
       this.homey.clearInterval(this.syncTimeIndex);
+
+      this.homey.clearTimeout(this.writeLoopIndex);
 
       await this.disconnect();
     });
@@ -41,8 +44,11 @@ class PlejdApp extends Homey.App {
     }
   }
 
-
   async registerDevice(device) {
+    if (this.devices[device.getData().plejdId]) {
+      return;
+    }
+
     this.devicesList.push(device);
     this.devices[device.getData().plejdId] = device;
 
@@ -59,7 +65,10 @@ class PlejdApp extends Homey.App {
 
   async unregisterDevice(device) {
     this.devicesList = this.devices.filter(current => current.getData().plejdId !== device.getData().plejdId);
-    delete this.devices[device.getData().plejdId];
+
+    if (this.devices[device.getData().plejdId]) {
+      delete this.devices[device.getData().plejdId];
+    }
 
     if (this.devicesList.length === 0) {
       await this.disconnect();
@@ -188,9 +197,12 @@ class PlejdApp extends Homey.App {
           this.log(advertisement.localName, advertisement.uuid, advertisement.rssi, this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid));
         }
 
+        // if (!currentAdvertisement && this.devicesList.some(device => device.getData().id.toLowerCase() === advertisement.uuid.toLowerCase())) {
         if (!currentAdvertisement && advertisement.localName === 'P mesh') { // && !this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid)
           currentAdvertisement = advertisement;
         }
+
+        this.log(advertisement.localName, advertisement.uuid, advertisement.rssi, this.devicesList.some(device => device.getData().id.toLowerCase() === advertisement.uuid.toLowerCase()));
       }
 
       advertisements = null;
@@ -211,6 +223,10 @@ class PlejdApp extends Homey.App {
 
     try {
       this.peripheral = await currentAdvertisement.connect();
+      this.peripheral.once('disconnect', () => {
+        this.log('Peripheral disconnected');
+        this.reconnect();
+      });
     } catch (error) {
       this.isConnecting = false;
       this.homey.settings.set('plejd_mesh', null);
@@ -267,10 +283,10 @@ class PlejdApp extends Homey.App {
         && this.authCharacteristic
         && this.pingCharacteristic) {
       this.plejdCommands = new plejd.Commands(
-          cryptokey,
-          this.peripheral.address,
-          null, // this.homey.clock.getTimezone(),
-          { log: this.log, error: this.error }
+        cryptokey,
+        this.peripheral.address,
+        null, // this.homey.clock.getTimezone(),
+        { log: this.log, error: this.error },
       );
 
       try {
@@ -287,10 +303,11 @@ class PlejdApp extends Homey.App {
       this.isConnecting = false;
 
       try {
+        await this.runWriteLoop();
+
         await this.setAllDevicesAsAvailable();
 
         await this.startPing();
-        await this.plejdWriteFromList();
       } catch (error) {
         this.error(`error when connected: ${error}`);
         this.isConnecting = false;
@@ -353,8 +370,9 @@ class PlejdApp extends Homey.App {
     this.authCharacteristic = null;
     this.pingCharacteristic = null;
     this.lightLevelCharacteristic = null;
+    this.peripheral = null;
 
-    try  {
+    try {
       await this.setAllDevicesAsUnavailable();
     } catch (error) {
       this.error(error);
@@ -408,49 +426,13 @@ class PlejdApp extends Homey.App {
   }
 
   async plejdWrite(data) {
-    try {
-      if (this.isConnecting || this.isDisconnecting) {
-        this.log('Is connecting. Add to write list.');
-        this.writeList.push(data);
-        return Promise.resolve(true);
-      }
-
-      // this.log('Write to dataCharacteristic');
-      await this.dataCharacteristic.write(data);
-
-      await this.plejdWriteFromList();
-
-      return Promise.resolve(true);
-    } catch (error) {
-      this.log('Error while writing. Add write to list and reconnect.');
-      this.writeList.push(data);
-      this.error(error);
-      return this.reconnect();
-    }
-  }
-
-  async plejdWriteFromList() {
-    if (this.writeList.length > 0) {
-      let writeData;
-      // eslint-disable-next-line no-cond-assign
-      while ((writeData = this.writeList.shift()) !== undefined) {
-        this.log('Write to dataCharacteristic from write list');
-
-        try {
-          await this.dataCharacteristic.write(writeData);
-        } catch (error) {
-          this.error('Error writing from list', writeData, error);
-        }
-      }
-    }
-
-    return Promise.resolve(true);
+    return this.dataCharacteristic.write(data);
   }
 
   async getDevicesState() {
     this.homey.clearTimeout(this.getDeviceStateIndex);
     this.getDeviceStateIndex = this.homey.setTimeout(async () => {
-      if (this.lightLevelCharacteristic && this.plejdCommands) {
+      if (this.lightLevelCharacteristic && this.plejdCommands && this.isConnected) {
         try {
           await this.lightLevelCharacteristic.write(this.plejdCommands.stateGetAll());
         } catch (error) {
@@ -564,7 +546,11 @@ class PlejdApp extends Homey.App {
   async turnOn(id, brightness) {
     // this.log('turfOn', id, brightness || '');
     if (this.plejdCommands) {
-      return this.plejdWrite(this.plejdCommands.deviceOn(id, brightness));
+      this.writeQueue.push({
+        id,
+        command: this.plejdCommands.deviceOn(id, brightness),
+        shouldRetry: true,
+      });
     }
 
     return Promise.resolve(false);
@@ -573,7 +559,11 @@ class PlejdApp extends Homey.App {
   async turnOff(id) {
     // this.log('turfOff', id);
     if (this.plejdCommands) {
-      return this.plejdWrite(this.plejdCommands.deviceOff(id));
+      this.writeQueue.push({
+        id,
+        command: this.plejdCommands.deviceOff(id),
+        shouldRetry: true,
+      });
     }
 
     return Promise.resolve(false);
@@ -616,6 +606,51 @@ class PlejdApp extends Homey.App {
       return Promise.resolve(false);
     }
   }
+
+  async runWriteLoop() {
+    this.homey.clearTimeout(this.writeLoopIndex);
+
+    // this.log('Running write loop', this.writeQueue.length);
+
+    try {
+      while (this.writeQueue.length > 0) {
+        if (!this.isConnected) {
+          return;
+        }
+
+        const queueItem = this.writeQueue.pop();
+
+        if (this.writeQueue.some(item => item.id === queueItem.id)) {
+          this.log(`Newer commands exists for device: ${queueItem.id}`);
+        } else {
+          try {
+            this.log('Writing', queueItem.id, this.writeQueue.length, queueItem.command.toString('hex'));
+            await this.plejdWrite(queueItem.command);
+          } catch (error) {
+            if (queueItem.shouldRetry) {
+              queueItem.retryCount = (queueItem.retryCount || 0) + 1;
+              this.log(`Will retry command, count failed so far ${queueItem.retryCount} (${queueItem.id})`);
+              if (queueItem.retryCount <= 5) {
+                this.log(`Adding items back to queue id: ${queueItem.id}`);
+                this.writeQueue.push(queueItem);
+
+                break;
+              } else {
+                this.error(`Write queue: Exceed max retry count (${5}) for (${queueItem.id}).`);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      this.error('write queue error', error);
+    }
+
+    this.writeLoopIndex = this.homey.setTimeout(async () => {
+      await this.runWriteLoop();
+    }, 400);
+  }
+
 }
 
 module.exports = PlejdApp;
