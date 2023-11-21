@@ -36,8 +36,12 @@ class PlejdDevice extends Homey.Device {
         const brightness = parseInt(255 * value, 10);
         if (brightness === 0) {
           toggleResult = await this.homey.app.turnOff(this.getData().plejdId);
+
+          await this.setCapabilityValue('onoff', false);
         } else {
           toggleResult = await this.homey.app.turnOn(this.getData().plejdId, brightness);
+
+          await this.setCapabilityValue('onoff', true);
         }
         this.startGettingState();
 
