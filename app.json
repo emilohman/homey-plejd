@@ -1,6 +1,6 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "3.3.4",
+  "version": "3.3.5",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#48c5d6",
@@ -96,15 +96,21 @@
           "id": "device_class",
           "type": "dropdown",
           "value": "light",
-          "label": { "en": "Device class" },
+          "label": {
+            "en": "Device class"
+          },
           "values": [
             {
               "id": "light",
-              "label": { "en": "Light" }
+              "label": {
+                "en": "Light"
+              }
             },
             {
               "id": "socket",
-              "label": { "en": "Socket" }
+              "label": {
+                "en": "Socket"
+              }
             }
           ]
         }

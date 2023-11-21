@@ -121,5 +121,8 @@
   },
   "3.3.4": {
     "en": "Stability improvements"
+  },
+  "3.3.5": {
+    "en": "Fixed app from crashing when toggling multiple devices."
   }
 }
