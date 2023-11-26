@@ -278,10 +278,10 @@ class PlejdApp extends Homey.App {
     service = null;
 
     if (this.dataCharacteristic
-        && this.lastDataCharacteristic
-        && this.lightLevelCharacteristic
-        && this.authCharacteristic
-        && this.pingCharacteristic) {
+      && this.lastDataCharacteristic
+      && this.lightLevelCharacteristic
+      && this.authCharacteristic
+      && this.pingCharacteristic) {
       this.plejdCommands = new plejd.Commands(
         cryptokey,
         this.peripheral.address,
@@ -610,8 +610,6 @@ class PlejdApp extends Homey.App {
   async runWriteLoop() {
     this.homey.clearTimeout(this.writeLoopIndex);
 
-    // this.log('Running write loop', this.writeQueue.length);
-
     try {
       while (this.writeQueue.length > 0) {
         if (!this.isConnected) {
@@ -620,24 +618,23 @@ class PlejdApp extends Homey.App {
 
         const queueItem = this.writeQueue.pop();
 
-        if (this.writeQueue.some(item => item.id === queueItem.id)) {
-          this.log(`Newer commands exists for device: ${queueItem.id}`);
-        } else {
-          try {
-            this.log('Writing', queueItem.id, this.writeQueue.length, queueItem.command.toString('hex'));
-            await this.plejdWrite(queueItem.command);
-          } catch (error) {
-            if (queueItem.shouldRetry) {
-              queueItem.retryCount = (queueItem.retryCount || 0) + 1;
-              this.log(`Will retry command, count failed so far ${queueItem.retryCount} (${queueItem.id})`);
-              if (queueItem.retryCount <= 5) {
-                this.log(`Adding items back to queue id: ${queueItem.id}`);
-                this.writeQueue.push(queueItem);
+        // Fjern eldre kommandoer for samme enhet med samme handling
+        this.writeQueue = this.writeQueue.filter(item => !(item.id === queueItem.id && item.command.equals(queueItem.command)));
 
-                break;
-              } else {
-                this.error(`Write queue: Exceed max retry count (${5}) for (${queueItem.id}).`);
-              }
+        try {
+          this.log('Writing', queueItem.id, this.writeQueue.length, queueItem.command.toString('hex'));
+          await this.plejdWrite(queueItem.command);
+        } catch (error) {
+          if (queueItem.shouldRetry) {
+            queueItem.retryCount = (queueItem.retryCount || 0) + 1;
+            this.log(`Will retry command, count failed so far ${queueItem.retryCount} (${queueItem.id})`);
+            if (queueItem.retryCount <= 5) {
+              this.log(`Adding items back to queue id: ${queueItem.id}`);
+              this.writeQueue.push(queueItem);
+
+              break;
+            } else {
+              this.error(`Write queue: Exceed max retry count (${5}) for (${queueItem.id}).`);
             }
           }
         }
