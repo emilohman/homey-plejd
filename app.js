@@ -618,7 +618,6 @@ class PlejdApp extends Homey.App {
 
         const queueItem = this.writeQueue.pop();
 
-        // Fjern eldre kommandoer for samme enhet med samme handling
         this.writeQueue = this.writeQueue.filter(item => !(item.id === queueItem.id && item.command.equals(queueItem.command)));
 
         try {
