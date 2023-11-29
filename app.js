@@ -544,9 +544,9 @@ class PlejdApp extends Homey.App {
   }
 
   async turnOn(id, brightness) {
-    // this.log('turfOn', id, brightness || '');
+    this.log('turnOn', id, brightness || '');
     if (this.plejdCommands) {
-      this.writeQueue.push({
+      this.writeQueue.unshift({
         id,
         command: this.plejdCommands.deviceOn(id, brightness),
         shouldRetry: true,
@@ -557,9 +557,9 @@ class PlejdApp extends Homey.App {
   }
 
   async turnOff(id) {
-    // this.log('turfOff', id);
+    this.log('turnOff', id);
     if (this.plejdCommands) {
-      this.writeQueue.push({
+      this.writeQueue.unshift({
         id,
         command: this.plejdCommands.deviceOff(id),
         shouldRetry: true,
