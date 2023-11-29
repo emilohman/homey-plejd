@@ -127,5 +127,8 @@
   },
   "3.3.6": {
     "en": "Fixed app from crashing when toggling multiple devices."
+  },
+  "3.3.8": {
+    "en": "Fixed dim in flows"
   }
 }
