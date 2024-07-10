@@ -130,5 +130,8 @@
   },
   "3.3.8": {
     "en": "Fixed dim in flows"
+  },
+  "3.4.0": {
+    "en": "Listen for Plejd scenes and added setting to toggle dim support for all devices"
   }
 }
