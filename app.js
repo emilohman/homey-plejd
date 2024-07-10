@@ -5,6 +5,8 @@ const { Log } = require('homey-log');
 
 const plejd = require('./lib/plejd');
 
+const api = require('./lib/api');
+
 class PlejdApp extends Homey.App {
 
   async onInit() {
@@ -12,8 +14,6 @@ class PlejdApp extends Homey.App {
 
     this.log('PlejdApp is running...');
 
-    this.homey.settings.unset('username');
-    this.homey.settings.unset('password');
     this.homey.settings.unset('keepalive');
 
     this.devices = {};
@@ -39,9 +39,72 @@ class PlejdApp extends Homey.App {
       await this.disconnect();
     });
 
+    this.sceneTrigger = this.homey.flow.getTriggerCard('scene_triggered')
+      .registerRunListener(async (args, state) => args.scene.id === state.scene.id)
+      .registerArgumentAutocompleteListener('scene',
+        async (query, args) => {
+          const scenes = await this.fetchScenes();
+
+          return scenes.filter((scene) => {
+            return scene.name.toLowerCase().includes(query.toLowerCase());
+          });
+        });
+
     if (this.devicesList.length > 0) {
       await this.connect();
     }
+  }
+
+  async fetchScenes() {
+    const sessionToken = this.homey.settings.get('sessionToken');
+    const username = this.homey.settings.get('username');
+    const password = this.homey.settings.get('password');
+
+    let plejdApi;
+    let sites;
+
+    if (sessionToken) {
+      this.log('Using saved session token');
+      plejdApi = new api.PlejdApi(null, null, sessionToken, this.log);
+
+      sites = await plejdApi.getSites();
+    }
+
+    if (!sites) {
+      this.log('No saved session token, trying to login');
+      if (!username || !password) {
+        this.log('No username or password');
+        return [{
+          name: 'Set username and password in settings',
+        }];
+      }
+
+      plejdApi = new api.PlejdApi(username, password, null, this.log);
+      const login = await plejdApi.login();
+
+      if (login) {
+        this.log('Login successful');
+        sites = await plejdApi.getSites();
+      } else {
+        this.error('Login failed');
+
+        return [{
+          name: 'Login failed',
+        }];
+      }
+    }
+
+    const siteId = sites[0].id;
+    const site = await plejdApi.getSite(siteId);
+    const { scenes, sceneIndex } = site.result[0];
+
+    return scenes.map((scene) => {
+      this.log('Scene', scene.title, scene.sceneId, sceneIndex[scene.sceneId]);
+      return {
+        name: scene.title,
+        id: sceneIndex[scene.sceneId],
+      };
+    });
   }
 
   async registerDevice(device) {
@@ -448,7 +511,7 @@ class PlejdApp extends Homey.App {
       try {
         const state = this.plejdCommands.notificationParse(data);
 
-        // this.log(`lastData subscribe: ${JSON.stringify(state)}`);
+        this.log(`lastData subscribe: ${JSON.stringify(state)}`);
 
         if (state && state.cmd === 'state') {
           const device = this.devices[state.id];
@@ -456,6 +519,8 @@ class PlejdApp extends Homey.App {
           if (device) {
             await device.setState(state);
           }
+        } else if (state && state.cmd === 'scene') {
+          this.sceneTrigger.trigger(null, { scene: { id: state.state } }).catch(this.error);
         }
       } catch (error) {
         this.error(`lastData error: ${error}`);

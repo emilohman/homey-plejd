@@ -58,6 +58,8 @@ class PlejdDriver extends Homey.Driver {
       const token = await plejdApi.login();
 
       if (token) {
+        this.homey.settings.set('username', username);
+        this.homey.settings.set('password', password);
         this.homey.settings.set('sessionToken', token);
         return Promise.resolve(true);
       }
@@ -90,12 +92,17 @@ class PlejdDriver extends Homey.Driver {
 
       const plejdDevices = plejdApi.getDevices();
 
-      plejdDevices.forEach(plejdDevice => {
+      plejdDevices.forEach((plejdDevice) => {
         const capabilities = ['onoff'];
 
         if (plejdDevice.dimmable) {
           capabilities.push('dim');
         }
+
+        capabilities.push('light_hue');
+        capabilities.push('light_saturation');
+        capabilities.push('light_temperature');
+        capabilities.push('light_mode');
 
         devices.push({
           name: plejdDevice.name,

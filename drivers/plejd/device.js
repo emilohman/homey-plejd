@@ -1,8 +1,10 @@
 'use strict';
 
 const Homey = require('homey');
+const tinycolor = require('tinycolor2');
 
 const SETTING_DEVICE_CLASS = 'device_class';
+const SETTING_DIMMABLE = 'dimmable';
 
 class PlejdDevice extends Homey.Device {
 
@@ -49,6 +51,21 @@ class PlejdDevice extends Homey.Device {
       });
     }
 
+    this.registerMultipleCapabilityListener(['light_temperature', 'light_hue', 'light_saturation'], async (capabilityValues, capabilityOptions) => {
+      this.log('capabilityValues', capabilityValues);
+      this.log('capabilityOptions', capabilityOptions);
+
+      // const { light_hue, light_saturation } = capabilityValues;
+
+      // const colorHex = tinycolor({
+      //   h: light_hue * 360,
+      //   s: light_saturation * 100,
+      //   l: 50,
+      // }).toHex();
+
+      // this.log('colorHex', colorHex);
+    }, 500);
+
     await this.homey.app.registerDevice(this);
   }
 
@@ -57,7 +74,7 @@ class PlejdDevice extends Homey.Device {
       // this.log('Device reveiving state', this.getData().plejdId, this.getData().dimmable, state);
       await this.setCapabilityValue('onoff', state.state);
 
-      if (this.getData().dimmable) {
+      if (this.hasCapability('dim') && state.dim !== undefined) {
         await this.setCapabilityValue('dim', state.dim / 255);
       }
     }
@@ -102,8 +119,17 @@ class PlejdDevice extends Homey.Device {
   }
 
   async onSettings({ newSettings, changedKeys }) {
-    if (changedKeys.some(key => key === SETTING_DEVICE_CLASS)) {
+    if (changedKeys.some((key) => key === SETTING_DEVICE_CLASS)) {
       this.setClass(newSettings[SETTING_DEVICE_CLASS]);
+    } else if (changedKeys.some((key) => key === SETTING_DIMMABLE)) {
+      const isDimmable = this.getCapabilities().includes('dim');
+      const newValue = newSettings[SETTING_DIMMABLE];
+
+      if (newValue && !isDimmable) {
+        this.addCapability('dim');
+      } else if (!newValue && isDimmable) {
+        this.removeCapability('dim');
+      }
     }
   }
 

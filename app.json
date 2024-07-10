@@ -113,6 +113,14 @@
               }
             }
           ]
+        },
+        {
+          "id": "dimmable",
+          "type": "checkbox",
+          "value": true,
+          "label": {
+            "en": "Dimmable"
+          }
         }
       ]
     },
@@ -227,6 +235,24 @@
             "name": "device",
             "type": "device",
             "filter": "driver_id=button"
+          }
+        ]
+      },
+      {
+        "id": "scene_triggered",
+        "title": {
+          "en": "Scene ... has been triggered"
+        },
+        "titleFormatted": {
+          "en": "Scene [[scene]] has been triggered"
+        },
+        "args": [
+          {
+            "type": "autocomplete",
+            "name": "scene",
+            "title": {
+              "en": "Select scene"
+            }
           }
         ]
       }
