@@ -1,7 +1,7 @@
 'use strict';
 
 const Homey = require('homey');
-const tinycolor = require('tinycolor2');
+// const tinycolor = require('tinycolor2');
 
 const SETTING_DEVICE_CLASS = 'device_class';
 const SETTING_DIMMABLE = 'dimmable';
@@ -14,7 +14,7 @@ class PlejdDevice extends Homey.Device {
 
     this.receiveState = true;
 
-    this.registerCapabilityListener('onoff', async value => {
+    this.registerCapabilityListener('onoff', async (value) => {
       // this.log(`Power is set to: ${value} for id ${this.getData().plejdId}`);
 
       this.stopGettingState();
@@ -29,27 +29,25 @@ class PlejdDevice extends Homey.Device {
       return toggleResult;
     });
 
-    if (this.getData().dimmable) {
-      this.registerCapabilityListener('dim', async value => {
-        // this.log(`Brightness is set to ${value}`);
+    this.registerCapabilityListener('dim', async (value) => {
+      // this.log(`Brightness is set to ${value}`);
 
-        this.stopGettingState();
-        let toggleResult;
-        const brightness = parseInt(255 * value, 10);
-        if (brightness === 0) {
-          toggleResult = await this.homey.app.turnOff(this.getData().plejdId);
+      this.stopGettingState();
+      let toggleResult;
+      const brightness = parseInt(255 * value, 10);
+      if (brightness === 0) {
+        toggleResult = await this.homey.app.turnOff(this.getData().plejdId);
 
-          await this.setCapabilityValue('onoff', false);
-        } else {
-          toggleResult = await this.homey.app.turnOn(this.getData().plejdId, brightness);
+        await this.setCapabilityValue('onoff', false);
+      } else {
+        toggleResult = await this.homey.app.turnOn(this.getData().plejdId, brightness);
 
-          await this.setCapabilityValue('onoff', true);
-        }
-        this.startGettingState();
+        await this.setCapabilityValue('onoff', true);
+      }
+      this.startGettingState();
 
-        return toggleResult;
-      });
-    }
+      return toggleResult;
+    });
 
     this.registerMultipleCapabilityListener(['light_temperature', 'light_hue', 'light_saturation'], async (capabilityValues, capabilityOptions) => {
       this.log('capabilityValues', capabilityValues);
