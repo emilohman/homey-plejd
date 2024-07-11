@@ -133,5 +133,8 @@
   },
   "3.4.0": {
     "en": "Listen for Plejd scenes and added setting to toggle dim support for all devices"
+  },
+  "3.4.1": {
+    "en": "Listen for Plejd scenes and added setting to toggle dim support for all devices"
   }
 }
