@@ -99,10 +99,10 @@ class PlejdDriver extends Homey.Driver {
           capabilities.push('dim');
         }
 
-        capabilities.push('light_hue');
-        capabilities.push('light_saturation');
-        capabilities.push('light_temperature');
-        capabilities.push('light_mode');
+        // capabilities.push('light_hue');
+        // capabilities.push('light_saturation');
+        // capabilities.push('light_temperature');
+        // capabilities.push('light_mode');
 
         devices.push({
           name: plejdDevice.name,
@@ -120,6 +120,7 @@ class PlejdDriver extends Homey.Driver {
           class: plejdDevice.type,
           settings: {
             device_class: plejdDevice.type,
+            dimmable: plejdDevice.dimmable,
           },
         });
       });

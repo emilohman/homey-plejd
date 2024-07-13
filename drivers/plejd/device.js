@@ -49,20 +49,38 @@ class PlejdDevice extends Homey.Device {
       return toggleResult;
     });
 
+    if (this.hasCapability('light_hue')) {
+      this.removeCapability('light_hue');
+    }
+
+    if (this.hasCapability('light_saturation')) {
+      this.removeCapability('light_saturation');
+    }
+
+    if (this.hasCapability('light_temperature')) {
+      this.removeCapability('light_temperature');
+    }
+
+    if (this.hasCapability('light_mode')) {
+      this.removeCapability('light_mode');
+    }
+
+    /*
     this.registerMultipleCapabilityListener(['light_temperature', 'light_hue', 'light_saturation'], async (capabilityValues, capabilityOptions) => {
       this.log('capabilityValues', capabilityValues);
       this.log('capabilityOptions', capabilityOptions);
 
-      // const { light_hue, light_saturation } = capabilityValues;
+      const { light_hue, light_saturation } = capabilityValues;
 
-      // const colorHex = tinycolor({
-      //   h: light_hue * 360,
-      //   s: light_saturation * 100,
-      //   l: 50,
-      // }).toHex();
+      const colorHex = tinycolor({
+        h: light_hue * 360,
+        s: light_saturation * 100,
+        l: 50,
+      }).toHex();
 
-      // this.log('colorHex', colorHex);
+      this.log('colorHex', colorHex);
     }, 500);
+    */
 
     await this.homey.app.registerDevice(this);
   }
@@ -119,7 +137,9 @@ class PlejdDevice extends Homey.Device {
   async onSettings({ newSettings, changedKeys }) {
     if (changedKeys.some((key) => key === SETTING_DEVICE_CLASS)) {
       this.setClass(newSettings[SETTING_DEVICE_CLASS]);
-    } else if (changedKeys.some((key) => key === SETTING_DIMMABLE)) {
+    }
+
+    if (changedKeys.some((key) => key === SETTING_DIMMABLE)) {
       const isDimmable = this.getCapabilities().includes('dim');
       const newValue = newSettings[SETTING_DIMMABLE];
 
