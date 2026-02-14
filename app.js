@@ -261,7 +261,7 @@ class PlejdApp extends Homey.App {
         }
 
         // if (!currentAdvertisement && this.devicesList.some(device => device.getData().id.toLowerCase() === advertisement.uuid.toLowerCase())) {
-        if (!currentAdvertisement && advertisement.localName === 'P mesh') { // && !this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid)
+        if (!currentAdvertisement && advertisement.localName === 'P mesh' && !this.advertisementsNotWorking.some((uuid) => uuid === advertisement.uuid)) {
           currentAdvertisement = advertisement;
         }
 
@@ -519,6 +519,12 @@ class PlejdApp extends Homey.App {
           if (device) {
             await device.setState(state);
           }
+        } else if (state && state.cmd === 'thermostat') {
+          const device = this.devices[state.id];
+
+          if (device) {
+            await device.setState(state);
+          }
         } else if (state && state.cmd === 'scene') {
           this.sceneTrigger.trigger(null, { scene: { id: state.state } }).catch(this.error);
         }
@@ -627,6 +633,32 @@ class PlejdApp extends Homey.App {
       this.writeQueue.unshift({
         id,
         command: this.plejdCommands.deviceOff(id),
+        shouldRetry: true,
+      });
+    }
+
+    return Promise.resolve(false);
+  }
+
+  async thermostatSetTargetTemperature(id, temperature) {
+    this.log('thermostatSetTargetTemperature', id, temperature);
+    if (this.plejdCommands) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.thermostatSetTargetTemperature(id, temperature),
+        shouldRetry: true,
+      });
+    }
+
+    return Promise.resolve(false);
+  }
+
+  async thermostatSetMode(id, isOn) {
+    this.log('thermostatSetMode', id, isOn);
+    if (this.plejdCommands) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.thermostatSetMode(id, isOn ? 7 : 0),
         shouldRetry: true,
       });
     }
