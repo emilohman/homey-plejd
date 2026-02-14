@@ -99,9 +99,12 @@ class PlejdDriver extends Homey.Driver {
           capabilities.push('dim');
         }
 
+        if (plejdDevice.colorTemp) {
+          capabilities.push('light_temperature');
+        }
+
         // capabilities.push('light_hue');
         // capabilities.push('light_saturation');
-        // capabilities.push('light_temperature');
         // capabilities.push('light_mode');
 
         devices.push({

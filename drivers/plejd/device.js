@@ -5,6 +5,8 @@ const Homey = require('homey');
 
 const SETTING_DEVICE_CLASS = 'device_class';
 const SETTING_DIMMABLE = 'dimmable';
+const COLOR_TEMP_MIN_KELVIN = 2200;
+const COLOR_TEMP_MAX_KELVIN = 4000;
 
 class PlejdDevice extends Homey.Device {
 
@@ -49,16 +51,22 @@ class PlejdDevice extends Homey.Device {
       return toggleResult;
     });
 
+    if (this.hasCapability('light_temperature')) {
+      this.registerCapabilityListener('light_temperature', async (value) => {
+        this.stopGettingState();
+        const toggleResult = await this.homey.app.setLightTemperature(this.getData().plejdId, value);
+        this.startGettingState();
+
+        return toggleResult;
+      });
+    }
+
     if (this.hasCapability('light_hue')) {
       this.removeCapability('light_hue');
     }
 
     if (this.hasCapability('light_saturation')) {
       this.removeCapability('light_saturation');
-    }
-
-    if (this.hasCapability('light_temperature')) {
-      this.removeCapability('light_temperature');
     }
 
     if (this.hasCapability('light_mode')) {
@@ -92,6 +100,19 @@ class PlejdDevice extends Homey.Device {
 
       if (this.hasCapability('dim') && state.dim !== undefined) {
         await this.setCapabilityValue('dim', state.dim / 255);
+      }
+
+      if (this.hasCapability('light_temperature') && state.color !== undefined && state.color !== null) {
+        const normalizedTemperature = Math.max(
+          0,
+          Math.min(
+            1,
+            (state.color - COLOR_TEMP_MIN_KELVIN)
+              / (COLOR_TEMP_MAX_KELVIN - COLOR_TEMP_MIN_KELVIN),
+          ),
+        );
+
+        await this.setCapabilityValue('light_temperature', normalizedTemperature);
       }
     }
 
