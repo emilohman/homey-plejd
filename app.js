@@ -7,7 +7,43 @@ const plejd = require('./lib/plejd');
 
 const api = require('./lib/api');
 
+const TRAIT_POWER = 0x01;
+const TRAIT_COVER = 0x10;
+const TRAIT_CLIMATE = 0x20;
+
 class PlejdApp extends Homey.App {
+  _normalizeBleId(id) {
+    if (!id || typeof id !== 'string') {
+      return '';
+    }
+
+    return id.replace(/:/g, '').toLowerCase();
+  }
+
+  _isConnectableDevice(device) {
+    const traits = Number(device.getStoreValue('traits'));
+    const hardwareName = String(
+      device.getStoreValue('hardwareName') || '',
+    ).toUpperCase();
+    const hardwareId = Number(device.getStoreValue('hardwareId'));
+
+    const hasPowerTrait =
+      !Number.isNaN(traits) && (traits & TRAIT_POWER) === TRAIT_POWER;
+    const isExtender = hardwareName.startsWith('EXT-01') || hardwareId === 19;
+    const isCover =
+      !Number.isNaN(traits) && (traits & TRAIT_COVER) === TRAIT_COVER;
+    const isMotion =
+      !Number.isNaN(traits) && (traits & TRAIT_CLIMATE) === TRAIT_CLIMATE;
+
+    return hasPowerTrait || isExtender || isCover || isMotion;
+  }
+
+  _getConnectableDeviceIds() {
+    return this.devicesList
+      .filter((device) => this._isConnectableDevice(device))
+      .map((device) => this._normalizeBleId(device.getData().id));
+  }
+
   async onInit() {
     this.homeyLog = new Log({ homey: this.homey });
 
@@ -125,7 +161,9 @@ class PlejdApp extends Homey.App {
     }
 
     if (this.devicesList.length === 1) {
-      await this.connect();
+      this.homey.setTimeout(async () => {
+        await this.connect();
+      }, 1000);
     }
 
     await this.getDevicesState();
@@ -187,7 +225,7 @@ class PlejdApp extends Homey.App {
     // return
     return new Promise((resolve) => {
       this.log('Reconnecting in', this.doReconnectDelay ? '30s' : '10s');
-      setTimeout(
+      this.homey.setTimeout(
         async () => {
           this.doReconnectDelay = true;
           await this.connect();
@@ -217,11 +255,34 @@ class PlejdApp extends Homey.App {
     }
 
     const meshUUID = this.homey.settings.get('plejd_mesh');
+    const connectableDeviceIds = this._getConnectableDeviceIds();
+
+    if (connectableDeviceIds.length === 0) {
+      this.log(
+        'No connectable paired devices available for BLE mesh connection',
+      );
+      this.isConnecting = false;
+      return Promise.resolve(false);
+    }
 
     let currentAdvertisement;
 
     if (meshUUID) {
       this.log('Using saved mesh uuid', meshUUID);
+
+      if (connectableDeviceIds.length > 0) {
+        const savedMeshId = this._normalizeBleId(meshUUID);
+        const isConnectableMesh = connectableDeviceIds.includes(savedMeshId);
+
+        if (!isConnectableMesh) {
+          this.log(
+            'Saved mesh uuid is not a connectable paired device, clearing cache',
+          );
+          this.homey.settings.set('plejd_mesh', null);
+          this.isConnecting = false;
+          return this.reconnect();
+        }
+      }
 
       try {
         currentAdvertisement = await this.homey.ble.find(
@@ -293,6 +354,9 @@ class PlejdApp extends Homey.App {
         if (
           !currentAdvertisement &&
           advertisement.localName === 'P mesh' &&
+          connectableDeviceIds.includes(
+            this._normalizeBleId(advertisement.uuid),
+          ) &&
           !this.advertisementsNotWorking.some(
             (uuid) => uuid === advertisement.uuid,
           )
