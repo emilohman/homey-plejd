@@ -5,7 +5,6 @@ const Homey = require('homey');
 const api = require('../../lib/api');
 
 class PlejdThermostatDriver extends Homey.Driver {
-
   async onInit() {
     this.log('Plejd thermostat driver has been inited');
   }
@@ -112,7 +111,6 @@ class PlejdThermostatDriver extends Homey.Driver {
       return devices;
     });
   }
-
 }
 
 module.exports = PlejdThermostatDriver;

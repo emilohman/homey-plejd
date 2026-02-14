@@ -3,20 +3,23 @@
 const Homey = require('homey');
 
 class PlejdThermostatDevice extends Homey.Device {
-
   async onInit() {
     const { driver } = this;
-    const initMessage = `Init thermostat: ${this.getName()} id: ${this.getData().id} `
-      + `plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} `
-      + `hName: ${this.getStoreValue('hardwareName')} traits: ${this.getStoreValue('traits')} `
-      + `total: ${driver.getDevices().length}`;
+    const initMessage =
+      `Init thermostat: ${this.getName()} id: ${this.getData().id} ` +
+      `plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} ` +
+      `hName: ${this.getStoreValue('hardwareName')} traits: ${this.getStoreValue('traits')} ` +
+      `total: ${driver.getDevices().length}`;
     this.log(initMessage);
 
     this.receiveState = true;
 
     this.registerCapabilityListener('target_temperature', async (value) => {
       this.stopGettingState();
-      const result = await this.homey.app.thermostatSetTargetTemperature(this.getData().plejdId, value);
+      const result = await this.homey.app.thermostatSetTargetTemperature(
+        this.getData().plejdId,
+        value,
+      );
       this.startGettingState();
 
       return result;
@@ -24,7 +27,10 @@ class PlejdThermostatDevice extends Homey.Device {
 
     this.registerCapabilityListener('onoff', async (value) => {
       this.stopGettingState();
-      const result = await this.homey.app.thermostatSetMode(this.getData().plejdId, value);
+      const result = await this.homey.app.thermostatSetMode(
+        this.getData().plejdId,
+        value,
+      );
       this.startGettingState();
 
       return result;
@@ -38,12 +44,24 @@ class PlejdThermostatDevice extends Homey.Device {
       return Promise.resolve(true);
     }
 
-    if (state.targetTemperature !== null && state.targetTemperature !== undefined) {
-      await this.setCapabilityValue('target_temperature', state.targetTemperature);
+    if (
+      state.targetTemperature !== null &&
+      state.targetTemperature !== undefined
+    ) {
+      await this.setCapabilityValue(
+        'target_temperature',
+        state.targetTemperature,
+      );
     }
 
-    if (state.currentTemperature !== null && state.currentTemperature !== undefined) {
-      await this.setCapabilityValue('measure_temperature', state.currentTemperature);
+    if (
+      state.currentTemperature !== null &&
+      state.currentTemperature !== undefined
+    ) {
+      await this.setCapabilityValue(
+        'measure_temperature',
+        state.currentTemperature,
+      );
     }
 
     if (state.mode !== null && state.mode !== undefined) {
@@ -90,7 +108,6 @@ class PlejdThermostatDevice extends Homey.Device {
 
     return Promise.resolve(true);
   }
-
 }
 
 module.exports = PlejdThermostatDevice;
