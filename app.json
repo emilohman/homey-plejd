@@ -170,8 +170,8 @@
       "class": "sensor",
       "capabilities": ["alarm_motion"],
       "images": {
-        "large": "/assets/images/large.png",
-        "small": "/assets/images/small.png"
+        "large": "/drivers/motion/assets/images/large.png",
+        "small": "/drivers/motion/assets/images/small.png"
       },
       "pair": [
         {
@@ -209,8 +209,8 @@
       "class": "thermostat",
       "capabilities": ["target_temperature", "measure_temperature", "onoff"],
       "images": {
-        "large": "/assets/images/large.png",
-        "small": "/assets/images/small.png"
+        "large": "/drivers/thermostat/assets/images/large.png",
+        "small": "/drivers/thermostat/assets/images/small.png"
       },
       "pair": [
         {
