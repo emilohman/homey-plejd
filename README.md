@@ -5,6 +5,7 @@ It uses an unsupported method for communication using bluetooth.
 
 Supported features:
 - Toggle state on/off/dim
+- Thermostat TRM-01 (temperature read + target set + on/off mode)
 - Instant state change
 - Syncing Plejd internal clock
 - Plejd buttons (single click only)

@@ -162,6 +162,49 @@
           "template": "add_devices"
         }
       ]
+    },
+    {
+      "id": "thermostat",
+      "name": {
+        "en": "Plejd thermostat"
+      },
+      "class": "thermostat",
+      "capabilities": [
+        "target_temperature",
+        "measure_temperature",
+        "onoff"
+      ],
+      "images": {
+        "large": "/assets/images/large.png",
+        "small": "/assets/images/small.png"
+      },
+      "pair": [
+        {
+          "id": "login",
+          "template": "login_credentials",
+          "options": {
+            "logo": "../../../assets/images/large.png"
+          }
+        },
+        {
+          "id": "site",
+          "navigation": {
+            "prev": "login"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "prev": "site",
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ]
     }
   ],
   "flow": {

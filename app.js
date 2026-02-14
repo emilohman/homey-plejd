@@ -8,7 +8,6 @@ const plejd = require('./lib/plejd');
 const api = require('./lib/api');
 
 class PlejdApp extends Homey.App {
-
   async onInit() {
     this.homeyLog = new Log({ homey: this.homey });
 
@@ -39,16 +38,18 @@ class PlejdApp extends Homey.App {
       await this.disconnect();
     });
 
-    this.sceneTrigger = this.homey.flow.getTriggerCard('scene_triggered')
-      .registerRunListener(async (args, state) => args.scene.id === state.scene.id)
-      .registerArgumentAutocompleteListener('scene',
-        async (query, args) => {
-          const scenes = await this.fetchScenes();
+    this.sceneTrigger = this.homey.flow
+      .getTriggerCard('scene_triggered')
+      .registerRunListener(
+        async (args, state) => args.scene.id === state.scene.id,
+      )
+      .registerArgumentAutocompleteListener('scene', async (query, args) => {
+        const scenes = await this.fetchScenes();
 
-          return scenes.filter((scene) => {
-            return scene.name.toLowerCase().includes(query.toLowerCase());
-          });
+        return scenes.filter((scene) => {
+          return scene.name.toLowerCase().includes(query.toLowerCase());
         });
+      });
 
     if (this.devicesList.length > 0) {
       await this.connect();
@@ -74,9 +75,11 @@ class PlejdApp extends Homey.App {
       this.log('No saved session token, trying to login');
       if (!username || !password) {
         this.log('No username or password');
-        return [{
-          name: 'Set username and password in settings',
-        }];
+        return [
+          {
+            name: 'Set username and password in settings',
+          },
+        ];
       }
 
       plejdApi = new api.PlejdApi(username, password, null, this.log);
@@ -88,9 +91,11 @@ class PlejdApp extends Homey.App {
       } else {
         this.error('Login failed');
 
-        return [{
-          name: 'Login failed',
-        }];
+        return [
+          {
+            name: 'Login failed',
+          },
+        ];
       }
     }
 
@@ -127,7 +132,9 @@ class PlejdApp extends Homey.App {
   }
 
   async unregisterDevice(device) {
-    this.devicesList = this.devices.filter(current => current.getData().plejdId !== device.getData().plejdId);
+    this.devicesList = this.devices.filter(
+      (current) => current.getData().plejdId !== device.getData().plejdId,
+    );
 
     if (this.devices[device.getData().plejdId]) {
       delete this.devices[device.getData().plejdId];
@@ -140,7 +147,10 @@ class PlejdApp extends Homey.App {
 
   async setAllDevicesAsAvailable() {
     for (let i = 0, length = this.devicesList.length; i < length; i++) {
-      if (this.devicesList[i] && this.devicesList[i].setAvailable !== undefined) {
+      if (
+        this.devicesList[i] &&
+        this.devicesList[i].setAvailable !== undefined
+      ) {
         try {
           await this.devicesList[i].setAvailable();
         } catch (error) {
@@ -152,9 +162,14 @@ class PlejdApp extends Homey.App {
 
   async setAllDevicesAsUnavailable() {
     for (let i = 0, length = this.devicesList.length; i < length; i++) {
-      if (this.devicesList[i] && this.devicesList[i].setUnavailable !== undefined) {
+      if (
+        this.devicesList[i] &&
+        this.devicesList[i].setUnavailable !== undefined
+      ) {
         try {
-          await this.devicesList[i].setUnavailable('Connecting to Plejd BLE mesh');
+          await this.devicesList[i].setUnavailable(
+            'Connecting to Plejd BLE mesh',
+          );
         } catch (error) {
           this.error(error);
         }
@@ -170,13 +185,16 @@ class PlejdApp extends Homey.App {
     }
 
     // return
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.log('Reconnecting in', this.doReconnectDelay ? '30s' : '10s');
-      setTimeout(async () => {
-        this.doReconnectDelay = true;
-        await this.connect();
-        resolve();
-      }, this.doReconnectDelay ? 30000 : 10000);
+      setTimeout(
+        async () => {
+          this.doReconnectDelay = true;
+          await this.connect();
+          resolve();
+        },
+        this.doReconnectDelay ? 30000 : 10000,
+      );
     });
   }
 
@@ -206,7 +224,9 @@ class PlejdApp extends Homey.App {
       this.log('Using saved mesh uuid', meshUUID);
 
       try {
-        currentAdvertisement = await this.homey.ble.find(meshUUID.replace(/:/g, ''));
+        currentAdvertisement = await this.homey.ble.find(
+          meshUUID.replace(/:/g, ''),
+        );
       } catch (error) {
         this.homey.settings.set('plejd_mesh', null);
         this.isConnecting = false;
@@ -251,21 +271,45 @@ class PlejdApp extends Homey.App {
         return this.reconnect();
       }
 
-      const sortedAdvertisements = advertisements.sort((a, b) => b.rssi - a.rssi)
+      const sortedAdvertisements = advertisements.sort(
+        (a, b) => b.rssi - a.rssi,
+      );
 
       for (let i = 0, { length } = sortedAdvertisements; i < length; i++) {
         const advertisement = sortedAdvertisements[i];
 
         if (advertisement.localName) {
-          this.log(advertisement.localName, advertisement.uuid, advertisement.rssi, this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid));
+          this.log(
+            advertisement.localName,
+            advertisement.uuid,
+            advertisement.rssi,
+            this.advertisementsNotWorking.some(
+              (uuid) => uuid === advertisement.uuid,
+            ),
+          );
         }
 
         // if (!currentAdvertisement && this.devicesList.some(device => device.getData().id.toLowerCase() === advertisement.uuid.toLowerCase())) {
-        if (!currentAdvertisement && advertisement.localName === 'P mesh' && !this.advertisementsNotWorking.some((uuid) => uuid === advertisement.uuid)) {
+        if (
+          !currentAdvertisement &&
+          advertisement.localName === 'P mesh' &&
+          !this.advertisementsNotWorking.some(
+            (uuid) => uuid === advertisement.uuid,
+          )
+        ) {
           currentAdvertisement = advertisement;
         }
 
-        this.log(advertisement.localName, advertisement.uuid, advertisement.rssi, this.devicesList.some(device => device.getData().id.toLowerCase() === advertisement.uuid.toLowerCase()));
+        this.log(
+          advertisement.localName,
+          advertisement.uuid,
+          advertisement.rssi,
+          this.devicesList.some(
+            (device) =>
+              device.getData().id.toLowerCase() ===
+              advertisement.uuid.toLowerCase(),
+          ),
+        );
       }
 
       advertisements = null;
@@ -315,7 +359,7 @@ class PlejdApp extends Homey.App {
 
     try {
       const characteristics = await service.discoverCharacteristics();
-      characteristics.forEach(characteristic => {
+      characteristics.forEach((characteristic) => {
         // self.log('Characteristic', characteristic.uuid);
 
         if (plejd.DATA_UUID === characteristic.uuid) {
@@ -340,11 +384,13 @@ class PlejdApp extends Homey.App {
 
     service = null;
 
-    if (this.dataCharacteristic
-      && this.lastDataCharacteristic
-      && this.lightLevelCharacteristic
-      && this.authCharacteristic
-      && this.pingCharacteristic) {
+    if (
+      this.dataCharacteristic &&
+      this.lastDataCharacteristic &&
+      this.lightLevelCharacteristic &&
+      this.authCharacteristic &&
+      this.pingCharacteristic
+    ) {
       this.plejdCommands = new plejd.Commands(
         cryptokey,
         this.peripheral.address,
@@ -388,7 +434,9 @@ class PlejdApp extends Homey.App {
       */
 
       try {
-        if (this.lastDataCharacteristic.subscribeToNotifications !== undefined) {
+        if (
+          this.lastDataCharacteristic.subscribeToNotifications !== undefined
+        ) {
           this.log('startSubscribe');
           await this.startSubscribe();
         } else {
@@ -452,13 +500,17 @@ class PlejdApp extends Homey.App {
   async authenticate() {
     this.log('authenticating');
     // this.log('authenticate write');
-    await this.authCharacteristic.write(this.plejdCommands.authenticateInitialize());
+    await this.authCharacteristic.write(
+      this.plejdCommands.authenticateInitialize(),
+    );
 
     // this.log('authenticate read');
     const data = await this.authCharacteristic.read();
 
     // this.log('authenticate write response');
-    await this.authCharacteristic.write(this.plejdCommands.authenticateChallengeResponse(data));
+    await this.authCharacteristic.write(
+      this.plejdCommands.authenticateChallengeResponse(data),
+    );
 
     this.log('authenticating done');
 
@@ -471,7 +523,9 @@ class PlejdApp extends Homey.App {
     this.log('Sync time');
 
     if (devices.length) {
-      await this.plejdWrite(this.plejdCommands.timeGet(devices[0].getData().plejdId));
+      await this.plejdWrite(
+        this.plejdCommands.timeGet(devices[0].getData().plejdId),
+      );
 
       const data = await this.dataCharacteristic.read();
 
@@ -495,9 +549,15 @@ class PlejdApp extends Homey.App {
   async getDevicesState() {
     this.homey.clearTimeout(this.getDeviceStateIndex);
     this.getDeviceStateIndex = this.homey.setTimeout(async () => {
-      if (this.lightLevelCharacteristic && this.plejdCommands && this.isConnected) {
+      if (
+        this.lightLevelCharacteristic &&
+        this.plejdCommands &&
+        this.isConnected
+      ) {
         try {
-          await this.lightLevelCharacteristic.write(this.plejdCommands.stateGetAll());
+          await this.lightLevelCharacteristic.write(
+            this.plejdCommands.stateGetAll(),
+          );
         } catch (error) {
           this.log('Error while writing getDevicesState.');
           this.error(error);
@@ -507,7 +567,7 @@ class PlejdApp extends Homey.App {
   }
 
   async startSubscribe() {
-    await this.lastDataCharacteristic.subscribeToNotifications(async data => {
+    await this.lastDataCharacteristic.subscribeToNotifications(async (data) => {
       try {
         const state = this.plejdCommands.notificationParse(data);
 
@@ -526,31 +586,35 @@ class PlejdApp extends Homey.App {
             await device.setState(state);
           }
         } else if (state && state.cmd === 'scene') {
-          this.sceneTrigger.trigger(null, { scene: { id: state.state } }).catch(this.error);
+          this.sceneTrigger
+            .trigger(null, { scene: { id: state.state } })
+            .catch(this.error);
         }
       } catch (error) {
         this.error(`lastData error: ${error}`);
       }
     });
 
-    await this.lightLevelCharacteristic.subscribeToNotifications(async data => {
-      try {
-        const states = this.plejdCommands.stateParse(data);
+    await this.lightLevelCharacteristic.subscribeToNotifications(
+      async (data) => {
+        try {
+          const states = this.plejdCommands.stateParse(data);
 
-        for (let i = 0, length = states.length; i < length; i++) {
-          const state = states[i];
-          const device = this.devices[state.id];
+          for (let i = 0, length = states.length; i < length; i++) {
+            const state = states[i];
+            const device = this.devices[state.id];
 
-          this.log(`lightLevel subscribe: ${JSON.stringify(state)}`);
+            this.log(`lightLevel subscribe: ${JSON.stringify(state)}`);
 
-          if (device) {
-            await device.setState(state);
+            if (device) {
+              await device.setState(state);
+            }
           }
+        } catch (error) {
+          this.error(`lightLevel error: ${error}`);
         }
-      } catch (error) {
-        this.error(`lightLevel error: ${error}`);
-      }
-    });
+      },
+    );
 
     await this.getDevicesState();
   }
@@ -578,7 +642,7 @@ class PlejdApp extends Homey.App {
   }
 
   sleep(ms) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.homey.setTimeout(resolve, ms);
     });
   }
@@ -588,7 +652,9 @@ class PlejdApp extends Homey.App {
       // this.log('getState', id);
 
       if (this.lightLevelCharacteristic) {
-        await this.lightLevelCharacteristic.write(this.plejdCommands.stateGet(id));
+        await this.lightLevelCharacteristic.write(
+          this.plejdCommands.stateGet(id),
+        );
 
         const stateResponse = await this.lightLevelCharacteristic.read();
 
@@ -597,7 +663,7 @@ class PlejdApp extends Homey.App {
         const states = this.plejdCommands.stateParse(stateResponse);
         let deviceState = null;
 
-        states.forEach(state => {
+        states.forEach((state) => {
           if (state.id === id) {
             deviceState = state;
           }
@@ -645,7 +711,10 @@ class PlejdApp extends Homey.App {
     if (this.plejdCommands) {
       this.writeQueue.unshift({
         id,
-        command: this.plejdCommands.thermostatSetTargetTemperature(id, temperature),
+        command: this.plejdCommands.thermostatSetTargetTemperature(
+          id,
+          temperature,
+        ),
         shouldRetry: true,
       });
     }
@@ -715,22 +784,36 @@ class PlejdApp extends Homey.App {
 
         const queueItem = this.writeQueue.pop();
 
-        this.writeQueue = this.writeQueue.filter(item => !(item.id === queueItem.id && item.command.equals(queueItem.command)));
+        this.writeQueue = this.writeQueue.filter(
+          (item) =>
+            !(
+              item.id === queueItem.id && item.command.equals(queueItem.command)
+            ),
+        );
 
         try {
-          this.log('Writing', queueItem.id, this.writeQueue.length, queueItem.command.toString('hex'));
+          this.log(
+            'Writing',
+            queueItem.id,
+            this.writeQueue.length,
+            queueItem.command.toString('hex'),
+          );
           await this.plejdWrite(queueItem.command);
         } catch (error) {
           if (queueItem.shouldRetry) {
             queueItem.retryCount = (queueItem.retryCount || 0) + 1;
-            this.log(`Will retry command, count failed so far ${queueItem.retryCount} (${queueItem.id})`);
+            this.log(
+              `Will retry command, count failed so far ${queueItem.retryCount} (${queueItem.id})`,
+            );
             if (queueItem.retryCount <= 5) {
               this.log(`Adding items back to queue id: ${queueItem.id}`);
               this.writeQueue.push(queueItem);
 
               break;
             } else {
-              this.error(`Write queue: Exceed max retry count (${5}) for (${queueItem.id}).`);
+              this.error(
+                `Write queue: Exceed max retry count (${5}) for (${queueItem.id}).`,
+              );
             }
           }
         }
@@ -743,7 +826,6 @@ class PlejdApp extends Homey.App {
       await this.runWriteLoop();
     }, 400);
   }
-
 }
 
 module.exports = PlejdApp;
