@@ -9,6 +9,7 @@ Supported features:
 - Color temperature control for supported lights (e.g. DWN-01/02, OUT-01/02, CCL-01)
 - Thermostat TRM-01 (temperature read + target set + on/off mode)
 - Motion sensor WMS-01
+- Cover controller JAL-01 (window covering position)
 - Instant state change
 - Syncing Plejd internal clock
 - Plejd buttons (single click only)

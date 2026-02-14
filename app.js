@@ -754,6 +754,19 @@ class PlejdApp extends Homey.App {
     return Promise.resolve(false);
   }
 
+  async setCoverPosition(id, position) {
+    this.log('setCoverPosition', id, position);
+    if (this.plejdCommands) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.coverSetPosition(id, position),
+        shouldRetry: true,
+      });
+    }
+
+    return Promise.resolve(false);
+  }
+
   async startPing() {
     this.homey.clearInterval(this.pingIndex);
     this.pingIndex = this.homey.setInterval(async () => {
