@@ -6,7 +6,9 @@ It uses an unsupported method for communication using bluetooth.
 Supported features:
 
 - Toggle state on/off/dim
+- Color temperature control for supported lights (e.g. DWN-01/02, OUT-01/02, CCL-01)
 - Thermostat TRM-01 (temperature read + target set + on/off mode)
+- Motion sensor WMS-01
 - Instant state change
 - Syncing Plejd internal clock
 - Plejd buttons (single click only)

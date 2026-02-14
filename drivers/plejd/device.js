@@ -9,10 +9,11 @@ const COLOR_TEMP_MIN_KELVIN = 2200;
 const COLOR_TEMP_MAX_KELVIN = 4000;
 
 class PlejdDevice extends Homey.Device {
-
   async onInit() {
     const { driver } = this;
-    this.log(`Init plejd: ${this.getName()} id: ${this.getData().id} plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} hName: ${this.getStoreValue('hardwareName')} traits: ${this.getStoreValue('traits')} total: ${driver.getDevices().length}`);
+    this.log(
+      `Init plejd: ${this.getName()} id: ${this.getData().id} plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} hName: ${this.getStoreValue('hardwareName')} traits: ${this.getStoreValue('traits')} total: ${driver.getDevices().length}`,
+    );
 
     this.receiveState = true;
 
@@ -42,7 +43,10 @@ class PlejdDevice extends Homey.Device {
 
         await this.setCapabilityValue('onoff', false);
       } else {
-        toggleResult = await this.homey.app.turnOn(this.getData().plejdId, brightness);
+        toggleResult = await this.homey.app.turnOn(
+          this.getData().plejdId,
+          brightness,
+        );
 
         await this.setCapabilityValue('onoff', true);
       }
@@ -54,7 +58,10 @@ class PlejdDevice extends Homey.Device {
     if (this.hasCapability('light_temperature')) {
       this.registerCapabilityListener('light_temperature', async (value) => {
         this.stopGettingState();
-        const toggleResult = await this.homey.app.setLightTemperature(this.getData().plejdId, value);
+        const toggleResult = await this.homey.app.setLightTemperature(
+          this.getData().plejdId,
+          value,
+        );
         this.startGettingState();
 
         return toggleResult;
@@ -102,17 +109,24 @@ class PlejdDevice extends Homey.Device {
         await this.setCapabilityValue('dim', state.dim / 255);
       }
 
-      if (this.hasCapability('light_temperature') && state.color !== undefined && state.color !== null) {
+      if (
+        this.hasCapability('light_temperature') &&
+        state.color !== undefined &&
+        state.color !== null
+      ) {
         const normalizedTemperature = Math.max(
           0,
           Math.min(
             1,
-            (state.color - COLOR_TEMP_MIN_KELVIN)
-              / (COLOR_TEMP_MAX_KELVIN - COLOR_TEMP_MIN_KELVIN),
+            (state.color - COLOR_TEMP_MIN_KELVIN) /
+              (COLOR_TEMP_MAX_KELVIN - COLOR_TEMP_MIN_KELVIN),
           ),
         );
 
-        await this.setCapabilityValue('light_temperature', normalizedTemperature);
+        await this.setCapabilityValue(
+          'light_temperature',
+          normalizedTemperature,
+        );
       }
     }
 
@@ -134,7 +148,9 @@ class PlejdDevice extends Homey.Device {
   async onAdded() {
     const { driver } = this;
 
-    this.log(`Adding device: ${this.getName()} (${this.getData().id}) ${this.getClass()}`);
+    this.log(
+      `Adding device: ${this.getName()} (${this.getData().id}) ${this.getClass()}`,
+    );
     this.log('count ', driver.getDevices().length);
 
     await this.homey.app.registerDevice(this);
@@ -171,7 +187,6 @@ class PlejdDevice extends Homey.Device {
       }
     }
   }
-
 }
 
 module.exports = PlejdDevice;

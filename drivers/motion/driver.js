@@ -4,9 +4,10 @@ const Homey = require('homey');
 
 const api = require('../../lib/api');
 
-class PlejdDriver extends Homey.Driver {
+class PlejdMotionDriver extends Homey.Driver {
+
   async onInit() {
-    this.log('Plejd driver has been inited');
+    this.log('Plejd motion driver has been inited');
   }
 
   onPair(session) {
@@ -89,47 +90,29 @@ class PlejdDriver extends Homey.Driver {
       const cryptoKey = plejdApi.getCryptoKey();
       this.homey.settings.set('cryptokey', cryptoKey);
 
-      const plejdDevices = plejdApi.getDevices();
+      const plejdDevices = plejdApi.getDevices('motion');
 
       plejdDevices.forEach((plejdDevice) => {
-        const capabilities = ['onoff'];
-
-        if (plejdDevice.dimmable) {
-          capabilities.push('dim');
-        }
-
-        if (plejdDevice.colorTemp) {
-          capabilities.push('light_temperature');
-        }
-
-        // capabilities.push('light_hue');
-        // capabilities.push('light_saturation');
-        // capabilities.push('light_mode');
-
         devices.push({
           name: plejdDevice.name,
           data: {
             id: plejdDevice.deviceId,
             plejdId: plejdDevice.id,
-            dimmable: plejdDevice.dimmable,
           },
           store: {
             hardwareName: plejdDevice.hardwareName,
             hardwareId: plejdDevice.hardwareId,
             traits: plejdDevice.traits,
           },
-          capabilities,
-          class: plejdDevice.type,
-          settings: {
-            device_class: plejdDevice.type,
-            dimmable: plejdDevice.dimmable,
-          },
+          capabilities: ['alarm_motion'],
+          class: 'sensor',
         });
       });
 
       return devices;
     });
   }
+
 }
 
-module.exports = PlejdDriver;
+module.exports = PlejdMotionDriver;

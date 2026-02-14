@@ -585,6 +585,12 @@ class PlejdApp extends Homey.App {
           if (device) {
             await device.setState(state);
           }
+        } else if (state && state.cmd === 'motion') {
+          const device = this.devices[state.id];
+
+          if (device) {
+            await device.setState(state);
+          }
         } else if (state && state.cmd === 'scene') {
           this.sceneTrigger
             .trigger(null, { scene: { id: state.state } })
@@ -728,6 +734,19 @@ class PlejdApp extends Homey.App {
       this.writeQueue.unshift({
         id,
         command: this.plejdCommands.thermostatSetMode(id, isOn ? 7 : 0),
+        shouldRetry: true,
+      });
+    }
+
+    return Promise.resolve(false);
+  }
+
+  async setLightTemperature(id, temperature) {
+    this.log('setLightTemperature', id, temperature);
+    if (this.plejdCommands) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.deviceSetColorTemperature(id, temperature),
         shouldRetry: true,
       });
     }
