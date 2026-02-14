@@ -117,7 +117,6 @@ class PlejdDriver extends Homey.Driver {
             hardwareName: plejdDevice.hardwareName,
             hardwareId: plejdDevice.hardwareId,
             traits: plejdDevice.traits,
-            colorTempSupported: plejdDevice.colorTemp,
           },
           capabilities,
           class: plejdDevice.type,

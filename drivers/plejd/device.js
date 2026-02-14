@@ -192,15 +192,8 @@ class PlejdDevice extends Homey.Device {
       const isColorTemperatureEnabled =
         this.getCapabilities().includes('light_temperature');
       const newValue = newSettings[SETTING_COLOR_TEMPERATURE];
-      const isColorTemperatureSupported = Boolean(
-        this.getStoreValue('colorTempSupported'),
-      );
 
-      if (
-        newValue &&
-        !isColorTemperatureEnabled &&
-        isColorTemperatureSupported
-      ) {
+      if (newValue && !isColorTemperatureEnabled) {
         await this.addCapability('light_temperature');
       } else if (!newValue && isColorTemperatureEnabled) {
         await this.removeCapability('light_temperature');
