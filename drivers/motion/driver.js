@@ -5,7 +5,6 @@ const Homey = require('homey');
 const api = require('../../lib/api');
 
 class PlejdMotionDriver extends Homey.Driver {
-
   async onInit() {
     this.log('Plejd motion driver has been inited');
   }
@@ -112,7 +111,6 @@ class PlejdMotionDriver extends Homey.Driver {
       return devices;
     });
   }
-
 }
 
 module.exports = PlejdMotionDriver;

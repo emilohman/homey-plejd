@@ -160,9 +160,7 @@
         "en": "Plejd motion sensor"
       },
       "class": "sensor",
-      "capabilities": [
-        "alarm_motion"
-      ],
+      "capabilities": ["alarm_motion"],
       "images": {
         "large": "/assets/images/large.png",
         "small": "/assets/images/small.png"

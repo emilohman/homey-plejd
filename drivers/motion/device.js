@@ -3,12 +3,12 @@
 const Homey = require('homey');
 
 class PlejdMotionDevice extends Homey.Device {
-
   async onInit() {
     const { driver } = this;
-    const initMessage = `Init motion: ${this.getName()} id: ${this.getData().id} `
-      + `plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} `
-      + `hName: ${this.getStoreValue('hardwareName')} total: ${driver.getDevices().length}`;
+    const initMessage =
+      `Init motion: ${this.getName()} id: ${this.getData().id} ` +
+      `plejdId: ${this.getData().plejdId} hId: ${this.getStoreValue('hardwareId')} ` +
+      `hName: ${this.getStoreValue('hardwareName')} total: ${driver.getDevices().length}`;
     this.log(initMessage);
 
     await this.setCapabilityValue('alarm_motion', false);
@@ -58,7 +58,6 @@ class PlejdMotionDevice extends Homey.Device {
 
     return Promise.resolve(true);
   }
-
 }
 
 module.exports = PlejdMotionDevice;
