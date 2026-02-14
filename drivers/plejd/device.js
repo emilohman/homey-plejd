@@ -5,6 +5,7 @@ const Homey = require('homey');
 
 const SETTING_DEVICE_CLASS = 'device_class';
 const SETTING_DIMMABLE = 'dimmable';
+const SETTING_COLOR_TEMPERATURE = 'color_temperature';
 const COLOR_TEMP_MIN_KELVIN = 2200;
 const COLOR_TEMP_MAX_KELVIN = 4000;
 
@@ -184,6 +185,25 @@ class PlejdDevice extends Homey.Device {
         this.addCapability('dim');
       } else if (!newValue && isDimmable) {
         this.removeCapability('dim');
+      }
+    }
+
+    if (changedKeys.some((key) => key === SETTING_COLOR_TEMPERATURE)) {
+      const isColorTemperatureEnabled =
+        this.getCapabilities().includes('light_temperature');
+      const newValue = newSettings[SETTING_COLOR_TEMPERATURE];
+      const isColorTemperatureSupported = Boolean(
+        this.getStoreValue('colorTempSupported'),
+      );
+
+      if (
+        newValue &&
+        !isColorTemperatureEnabled &&
+        isColorTemperatureSupported
+      ) {
+        await this.addCapability('light_temperature');
+      } else if (!newValue && isColorTemperatureEnabled) {
+        await this.removeCapability('light_temperature');
       }
     }
   }

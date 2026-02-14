@@ -112,6 +112,14 @@
           "label": {
             "en": "Dimmable"
           }
+        },
+        {
+          "id": "color_temperature",
+          "type": "checkbox",
+          "value": false,
+          "label": {
+            "en": "Color temperature"
+          }
         }
       ]
     },
