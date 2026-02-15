@@ -6,6 +6,7 @@ It uses an unsupported method for communication using bluetooth.
 Supported features:
 
 - Toggle state on/off/dim
+- Optional dim-over-time transitions for lights (configurable per device)
 - Color temperature control for supported lights (e.g. DWN-01/02, OUT-01/02, CCL-01)
 - Thermostat TRM-01 (temperature read + target set + on/off mode)
 - Motion sensor WMS-01

@@ -10,6 +10,7 @@ const api = require('./lib/api');
 const TRAIT_POWER = 0x01;
 const TRAIT_COVER = 0x10;
 const TRAIT_CLIMATE = 0x20;
+const DIM_TRANSITION_STEPS_PER_SECOND = 5;
 
 class PlejdApp extends Homey.App {
   _normalizeBleId(id) {
@@ -62,6 +63,7 @@ class PlejdApp extends Homey.App {
     this.advertisementsNotWorking = [];
     this.pingErrorCount = 0;
     this.writeQueue = [];
+    this.dimTransitionTimers = {};
 
     this.homey.on('unload', async () => {
       this.log('Unloading app');
@@ -751,6 +753,7 @@ class PlejdApp extends Homey.App {
   }
 
   async turnOn(id, brightness) {
+    this._clearDimTransition(id);
     this.log('turnOn', id, brightness || '');
     if (this.plejdCommands) {
       this.writeQueue.unshift({
@@ -764,6 +767,7 @@ class PlejdApp extends Homey.App {
   }
 
   async turnOff(id) {
+    this._clearDimTransition(id);
     this.log('turnOff', id);
     if (this.plejdCommands) {
       this.writeQueue.unshift({
@@ -772,6 +776,99 @@ class PlejdApp extends Homey.App {
         shouldRetry: true,
       });
     }
+
+    return Promise.resolve(false);
+  }
+
+  _clearDimTransition(id) {
+    if (this.dimTransitionTimers[id]) {
+      this.homey.clearInterval(this.dimTransitionTimers[id]);
+      delete this.dimTransitionTimers[id];
+    }
+  }
+
+  _queueBrightness(id, brightness, shouldRetry) {
+    if (!this.plejdCommands) {
+      return;
+    }
+
+    if (!brightness || brightness <= 0) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.deviceOff(id),
+        shouldRetry,
+      });
+      return;
+    }
+
+    this.writeQueue.unshift({
+      id,
+      command: this.plejdCommands.deviceOn(id, brightness),
+      shouldRetry,
+    });
+  }
+
+  async dimTo(id, targetBrightness, transitionSeconds, initialBrightness) {
+    this._clearDimTransition(id);
+
+    if (!this.plejdCommands) {
+      return Promise.resolve(false);
+    }
+
+    const target = Math.max(0, Math.min(255, Math.round(targetBrightness)));
+    const duration = Number(transitionSeconds);
+
+    if (
+      !Number.isFinite(initialBrightness) ||
+      !Number.isFinite(duration) ||
+      duration <= 1
+    ) {
+      this._queueBrightness(id, target, true);
+      return Promise.resolve(false);
+    }
+
+    const start = Math.max(0, Math.min(255, Math.round(initialBrightness)));
+
+    if (start === target) {
+      this._queueBrightness(id, target, true);
+      return Promise.resolve(false);
+    }
+
+    const delta = target - start;
+    const transitionSteps = Math.min(
+      Math.abs(delta),
+      Math.max(1, Math.round(DIM_TRANSITION_STEPS_PER_SECOND * duration)),
+    );
+    const transitionInterval = (duration * 1000) / transitionSteps;
+
+    this.log(
+      'dimTo',
+      id,
+      `from ${start} to ${target} in ${duration}s (${transitionSteps} steps)`,
+    );
+
+    const dtStart = new Date();
+
+    this.dimTransitionTimers[id] = this.homey.setInterval(() => {
+      const elapsedMs = new Date().getTime() - dtStart.getTime();
+      let elapsedSeconds = elapsedMs / 1000;
+
+      if (elapsedSeconds > duration || elapsedSeconds < 0) {
+        elapsedSeconds = duration;
+      }
+
+      let nextBrightness = Math.round(
+        start + (delta * elapsedSeconds) / duration,
+      );
+
+      if (elapsedSeconds === duration) {
+        nextBrightness = target;
+        this._clearDimTransition(id);
+        this._queueBrightness(id, nextBrightness, true);
+      } else {
+        this._queueBrightness(id, nextBrightness, false);
+      }
+    }, transitionInterval);
 
     return Promise.resolve(false);
   }
