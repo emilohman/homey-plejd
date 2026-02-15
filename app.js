@@ -159,7 +159,7 @@ class PlejdApp extends Homey.App {
     this.devices[device.getData().plejdId] = device;
 
     if (!this.isConnected) {
-      device.setUnavailable('Connecting to Plejd BLE mesh');
+      device.setUnavailable('Connecting to Plejd BLE mesh...');
     }
 
     if (this.devicesList.length === 1) {
@@ -172,7 +172,7 @@ class PlejdApp extends Homey.App {
   }
 
   async unregisterDevice(device) {
-    this.devicesList = this.devices.filter(
+    this.devicesList = this.devicesList.filter(
       (current) => current.getData().plejdId !== device.getData().plejdId,
     );
 
@@ -208,7 +208,11 @@ class PlejdApp extends Homey.App {
       ) {
         try {
           await this.devicesList[i].setUnavailable(
-            'Connecting to Plejd BLE mesh',
+            'Error connecting to Plejd BLE mesh, retrying...\n' +
+              'If this keeps happening, please try:\n' +
+              '- Restart Homey\n' +
+              '- Move Homey closer to a powered device\n' +
+              '- Install a device next to your Homey (SPR-01)',
           );
         } catch (error) {
           this.error(error);
@@ -220,6 +224,11 @@ class PlejdApp extends Homey.App {
   async reconnect() {
     this.log('Start reconnecting');
 
+    if (this.reconnectTimeoutIndex) {
+      this.log('Reconnect already scheduled');
+      return Promise.resolve(true);
+    }
+
     if (!this.isDisconnecting) {
       await this.disconnect();
     }
@@ -227,8 +236,9 @@ class PlejdApp extends Homey.App {
     // return
     return new Promise((resolve) => {
       this.log('Reconnecting in', this.doReconnectDelay ? '30s' : '10s');
-      this.homey.setTimeout(
+      this.reconnectTimeoutIndex = this.homey.setTimeout(
         async () => {
+          this.reconnectTimeoutIndex = null;
           this.doReconnectDelay = true;
           await this.connect();
           resolve();
@@ -253,6 +263,7 @@ class PlejdApp extends Homey.App {
 
     if (!cryptokey) {
       this.log('No cryptokey exists.');
+      this.isConnecting = false;
       return Promise.resolve(false);
     }
 
@@ -532,6 +543,8 @@ class PlejdApp extends Homey.App {
     this.isDisconnecting = true;
     this.stopPollingState();
     this.homey.clearInterval(this.pingIndex);
+    this.homey.clearTimeout(this.reconnectTimeoutIndex);
+    this.reconnectTimeoutIndex = null;
 
     if (this.peripheral && this.peripheral.isConnected) {
       try {
