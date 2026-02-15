@@ -209,8 +209,8 @@
       "class": "curtain",
       "capabilities": ["windowcoverings_set"],
       "images": {
-        "large": "/assets/images/large.png",
-        "small": "/assets/images/small.png"
+        "large": "/drivers/cover/assets/images/large.png",
+        "small": "/drivers/cover/assets/images/small.png"
       },
       "pair": [
         {
