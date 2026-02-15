@@ -3,10 +3,12 @@ It uses an unsupported method for communication using bluetooth.
 
 Supported features:
 - Toggle state on/off/dim
-- Instant state change
-- Syncing Plejd internal clock
 - Plejd buttons (single click only)
 - Listen for Plejd scenes (can be used for double click, see below)
+- Color temperature control (experimental)
+- Thermostat TRM-01  (experimental)
+- Motion sensor WMS-01 (experimental)
+- Cover controller JAL-01 (experimental)
 
 Scenes
 Make sure you have your username and password saved in the Plejd app settings so that the app is able to fetch available scenes from your Plejd setup.
