@@ -1,6 +1,6 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "3.4.2",
+  "version": "3.5.0",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#48c5d6",
@@ -11,10 +11,16 @@
     "en": "Smart lighting for everyone"
   },
   "tags": {
-    "en": ["plejd, light, bluetooth, BLE, dimmer"]
+    "en": [
+      "plejd, light, bluetooth, BLE, dimmer"
+    ]
   },
-  "category": ["lights"],
-  "permissions": ["homey:wireless:ble"],
+  "category": [
+    "lights"
+  ],
+  "permissions": [
+    "homey:wireless:ble"
+  ],
   "images": {
     "large": "/assets/images/large.png",
     "small": "/assets/images/small.png"
@@ -50,7 +56,10 @@
         "en": "Plejd"
       },
       "class": "light",
-      "capabilities": ["dim", "onoff"],
+      "capabilities": [
+        "dim",
+        "onoff"
+      ],
       "images": {
         "large": "/drivers/plejd/assets/images/large.png",
         "small": "/drivers/plejd/assets/images/small.png"
@@ -168,7 +177,9 @@
         "en": "Plejd motion sensor"
       },
       "class": "sensor",
-      "capabilities": ["alarm_motion"],
+      "capabilities": [
+        "alarm_motion"
+      ],
       "images": {
         "large": "/drivers/motion/assets/images/large.png",
         "small": "/drivers/motion/assets/images/small.png"
@@ -207,7 +218,9 @@
         "en": "Plejd cover"
       },
       "class": "curtain",
-      "capabilities": ["windowcoverings_set"],
+      "capabilities": [
+        "windowcoverings_set"
+      ],
       "images": {
         "large": "/drivers/cover/assets/images/large.png",
         "small": "/drivers/cover/assets/images/small.png"
@@ -246,7 +259,11 @@
         "en": "Plejd thermostat"
       },
       "class": "thermostat",
-      "capabilities": ["target_temperature", "measure_temperature", "onoff"],
+      "capabilities": [
+        "target_temperature",
+        "measure_temperature",
+        "onoff"
+      ],
       "images": {
         "large": "/drivers/thermostat/assets/images/large.png",
         "small": "/drivers/thermostat/assets/images/small.png"
