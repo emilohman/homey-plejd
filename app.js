@@ -240,6 +240,11 @@ class PlejdApp extends Homey.App {
         async () => {
           this.reconnectTimeoutIndex = null;
           this.doReconnectDelay = true;
+
+          if (!this.isDisconnecting) {
+            await this.disconnect();
+          }
+
           await this.connect();
           resolve();
         },
@@ -496,6 +501,7 @@ class PlejdApp extends Homey.App {
         await this.startPing();
       } catch (error) {
         this.error(`error when connected: ${error}`);
+        this.isConnected = false;
         this.isConnecting = false;
         this.homey.settings.set('plejd_mesh', null);
         this.advertisementsNotWorking.push(currentAdvertisement.uuid);
@@ -522,6 +528,7 @@ class PlejdApp extends Homey.App {
         }
       } catch (error) {
         this.error(`error startSubscribe: ${error}`);
+        this.isConnected = false;
         this.isConnecting = false;
         this.homey.settings.set('plejd_mesh', null);
         this.advertisementsNotWorking.push(currentAdvertisement.uuid);
