@@ -115,12 +115,14 @@ class PlejdDevice extends Homey.Device {
         state.color !== undefined &&
         state.color !== null
       ) {
+        // Homey light_temperature: 0 = cold (high Kelvin), 1 = warm (low Kelvin)
         const normalizedTemperature = Math.max(
           0,
           Math.min(
             1,
-            (state.color - COLOR_TEMP_MIN_KELVIN) /
-              (COLOR_TEMP_MAX_KELVIN - COLOR_TEMP_MIN_KELVIN),
+            1 -
+              (state.color - COLOR_TEMP_MIN_KELVIN) /
+                (COLOR_TEMP_MAX_KELVIN - COLOR_TEMP_MIN_KELVIN),
           ),
         );
 
