@@ -22,6 +22,11 @@ class PlejdApp extends Homey.App {
   }
 
   _isConnectableDevice(device) {
+    // Backwards compatibility, if traits is not set, assume it's connectable
+    if (!device.getStoreValue('traits')) {
+      return true;
+    }
+
     const traits = Number(device.getStoreValue('traits'));
     const hardwareName = String(
       device.getStoreValue('hardwareName') || '',
