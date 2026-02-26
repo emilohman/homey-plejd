@@ -151,5 +151,8 @@
   },
   "3.5.3": {
     "en": "Experimental support for TRM-01, WMS-01 and JAL-01. New flow for dim transition."
+  },
+  "3.5.4": {
+    "en": "Experimental support for TRM-01, WMS-01 and JAL-01. New flow for dim transition."
   }
 }
