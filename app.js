@@ -44,11 +44,11 @@ class PlejdApp extends Homey.App {
     return hasPowerTrait || isExtender || isCover || isMotion;
   }
 
-  _getConnectableDeviceIds() {
-    return this.devicesList
-      .filter((device) => this._isConnectableDevice(device))
-      .map((device) => this._normalizeBleId(device.getData().id));
-  }
+  // _getConnectableDeviceIds() {
+  //   return this.devicesList
+  //     .filter((device) => this._isConnectableDevice(device))
+  //     .map((device) => this._normalizeBleId(device.getData().id));
+  // }
 
   async onInit() {
     this.homeyLog = new Log({ homey: this.homey });
@@ -278,34 +278,34 @@ class PlejdApp extends Homey.App {
     }
 
     const meshUUID = this.homey.settings.get('plejd_mesh');
-    const connectableDeviceIds = this._getConnectableDeviceIds();
+    // const connectableDeviceIds = this._getConnectableDeviceIds();
 
-    if (connectableDeviceIds.length === 0) {
-      this.log(
-        'No connectable paired devices available for BLE mesh connection',
-      );
-      this.isConnecting = false;
-      return Promise.resolve(false);
-    }
+    // if (connectableDeviceIds.length === 0) {
+    //   this.log(
+    //     'No connectable paired devices available for BLE mesh connection',
+    //   );
+    //   this.isConnecting = false;
+    //   return Promise.resolve(false);
+    // }
 
     let currentAdvertisement;
 
     if (meshUUID) {
       this.log('Using saved mesh uuid', meshUUID);
 
-      if (connectableDeviceIds.length > 0) {
-        const savedMeshId = this._normalizeBleId(meshUUID);
-        const isConnectableMesh = connectableDeviceIds.includes(savedMeshId);
+      // if (connectableDeviceIds.length > 0) {
+      //   const savedMeshId = this._normalizeBleId(meshUUID);
+      //   const isConnectableMesh = connectableDeviceIds.includes(savedMeshId);
 
-        if (!isConnectableMesh) {
-          this.log(
-            'Saved mesh uuid is not a connectable paired device, clearing cache',
-          );
-          this.homey.settings.set('plejd_mesh', null);
-          this.isConnecting = false;
-          return this.reconnect();
-        }
-      }
+      //   if (!isConnectableMesh) {
+      //     this.log(
+      //       'Saved mesh uuid is not a connectable paired device, clearing cache',
+      //     );
+      //     this.homey.settings.set('plejd_mesh', null);
+      //     this.isConnecting = false;
+      //     return this.reconnect();
+      //   }
+      // }
 
       try {
         currentAdvertisement = await this.homey.ble.find(
@@ -374,16 +374,8 @@ class PlejdApp extends Homey.App {
         }
 
         // if (!currentAdvertisement && this.devicesList.some(device => device.getData().id.toLowerCase() === advertisement.uuid.toLowerCase())) {
-        if (
-          !currentAdvertisement &&
-          advertisement.localName === 'P mesh' &&
-          connectableDeviceIds.includes(
-            this._normalizeBleId(advertisement.uuid),
-          ) &&
-          !this.advertisementsNotWorking.some(
-            (uuid) => uuid === advertisement.uuid,
-          )
-        ) {
+        if (!currentAdvertisement && advertisement.localName === 'P mesh') {
+          // && !this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid)
           currentAdvertisement = advertisement;
         }
 
