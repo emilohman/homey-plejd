@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 512 512" xml:space="preserve">
+  <style type="text/css">
+    .st0{fill:none;stroke:#000000;stroke-width:24;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+  </style>
+
+  <rect class="st0" x="92" y="76" width="328" height="360" rx="20" ry="20"/>
+  <rect class="st0" x="132" y="126" width="248" height="220" rx="8" ry="8"/>
+
+  <line class="st0" x1="324" y1="170" x2="364" y2="170"/>
+  <line class="st0" x1="344" y1="150" x2="344" y2="190"/>
+  <line class="st0" x1="324" y1="292" x2="364" y2="292"/>
+
+  <rect class="st0" x="225" y="384" width="62" height="22" rx="4" ry="4"/>
+</svg>

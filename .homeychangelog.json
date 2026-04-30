@@ -130,5 +130,29 @@
   },
   "3.3.8": {
     "en": "Fixed dim in flows"
+  },
+  "3.4.0": {
+    "en": "Listen for Plejd scenes and added setting to toggle dim support for all devices"
+  },
+  "3.4.1": {
+    "en": "Listen for Plejd scenes and added setting to toggle dim support for all devices"
+  },
+  "3.4.2": {
+    "en": "Listen for Plejd scenes and added setting to toggle dim support for all devices"
+  },
+  "3.5.0": {
+    "en": "Experimental support for TRM-01, WMS-01 and JAL-01. New flow for dim transition."
+  },
+  "3.5.1": {
+    "en": "Experimental support for TRM-01, WMS-01 and JAL-01. New flow for dim transition."
+  },
+  "3.5.2": {
+    "en": "Experimental support for TRM-01, WMS-01 and JAL-01. New flow for dim transition."
+  },
+  "3.5.3": {
+    "en": "Experimental support for TRM-01, WMS-01 and JAL-01. New flow for dim transition."
+  },
+  "3.5.4": {
+    "en": "Experimental support for TRM-01, WMS-01 and JAL-01. New flow for dim transition."
   }
 }

@@ -5,15 +5,56 @@ const { Log } = require('homey-log');
 
 const plejd = require('./lib/plejd');
 
+const api = require('./lib/api');
+
+const TRAIT_POWER = 0x01;
+const TRAIT_COVER = 0x10;
+const TRAIT_CLIMATE = 0x20;
+const DIM_TRANSITION_STEPS_PER_SECOND = 5;
+
 class PlejdApp extends Homey.App {
+  _normalizeBleId(id) {
+    if (!id || typeof id !== 'string') {
+      return '';
+    }
+
+    return id.replace(/:/g, '').toLowerCase();
+  }
+
+  _isConnectableDevice(device) {
+    // Backwards compatibility, if traits is not set, assume it's connectable
+    if (!device.getStoreValue('traits')) {
+      return true;
+    }
+
+    const traits = Number(device.getStoreValue('traits'));
+    const hardwareName = String(
+      device.getStoreValue('hardwareName') || '',
+    ).toUpperCase();
+    const hardwareId = Number(device.getStoreValue('hardwareId'));
+
+    const hasPowerTrait =
+      !Number.isNaN(traits) && (traits & TRAIT_POWER) === TRAIT_POWER;
+    const isExtender = hardwareName.startsWith('EXT-01') || hardwareId === 19;
+    const isCover =
+      !Number.isNaN(traits) && (traits & TRAIT_COVER) === TRAIT_COVER;
+    const isMotion =
+      !Number.isNaN(traits) && (traits & TRAIT_CLIMATE) === TRAIT_CLIMATE;
+
+    return hasPowerTrait || isExtender || isCover || isMotion;
+  }
+
+  // _getConnectableDeviceIds() {
+  //   return this.devicesList
+  //     .filter((device) => this._isConnectableDevice(device))
+  //     .map((device) => this._normalizeBleId(device.getData().id));
+  // }
 
   async onInit() {
     this.homeyLog = new Log({ homey: this.homey });
 
     this.log('PlejdApp is running...');
 
-    this.homey.settings.unset('username');
-    this.homey.settings.unset('password');
     this.homey.settings.unset('keepalive');
 
     this.devices = {};
@@ -27,6 +68,7 @@ class PlejdApp extends Homey.App {
     this.advertisementsNotWorking = [];
     this.pingErrorCount = 0;
     this.writeQueue = [];
+    this.dimTransitionTimers = {};
 
     this.homey.on('unload', async () => {
       this.log('Unloading app');
@@ -39,9 +81,78 @@ class PlejdApp extends Homey.App {
       await this.disconnect();
     });
 
+    this.sceneTrigger = this.homey.flow
+      .getTriggerCard('scene_triggered')
+      .registerRunListener(
+        async (args, state) => args.scene.id === state.scene.id,
+      )
+      .registerArgumentAutocompleteListener('scene', async (query, args) => {
+        const scenes = await this.fetchScenes();
+
+        return scenes.filter((scene) => {
+          return scene.name.toLowerCase().includes(query.toLowerCase());
+        });
+      });
+
     if (this.devicesList.length > 0) {
       await this.connect();
     }
+  }
+
+  async fetchScenes() {
+    const sessionToken = this.homey.settings.get('sessionToken');
+    const username = this.homey.settings.get('username');
+    const password = this.homey.settings.get('password');
+
+    let plejdApi;
+    let sites;
+
+    if (sessionToken) {
+      this.log('Using saved session token');
+      plejdApi = new api.PlejdApi(null, null, sessionToken, this.log);
+
+      sites = await plejdApi.getSites();
+    }
+
+    if (!sites) {
+      this.log('No saved session token, trying to login');
+      if (!username || !password) {
+        this.log('No username or password');
+        return [
+          {
+            name: 'Set username and password in settings',
+          },
+        ];
+      }
+
+      plejdApi = new api.PlejdApi(username, password, null, this.log);
+      const login = await plejdApi.login();
+
+      if (login) {
+        this.log('Login successful');
+        sites = await plejdApi.getSites();
+      } else {
+        this.error('Login failed');
+
+        return [
+          {
+            name: 'Login failed',
+          },
+        ];
+      }
+    }
+
+    const siteId = sites[0].id;
+    const site = await plejdApi.getSite(siteId);
+    const { scenes, sceneIndex } = site.result[0];
+
+    return scenes.map((scene) => {
+      this.log('Scene', scene.title, scene.sceneId, sceneIndex[scene.sceneId]);
+      return {
+        name: scene.title,
+        id: sceneIndex[scene.sceneId],
+      };
+    });
   }
 
   async registerDevice(device) {
@@ -53,18 +164,27 @@ class PlejdApp extends Homey.App {
     this.devices[device.getData().plejdId] = device;
 
     if (!this.isConnected) {
-      device.setUnavailable('Connecting to Plejd BLE mesh');
+      device.setUnavailable('Connecting to Plejd BLE mesh...');
     }
 
     if (this.devicesList.length === 1) {
-      await this.connect();
+      this.homey.setTimeout(async () => {
+        try {
+          await this.connect();
+        } catch (error) {
+          this.error('Error connecting from registerDevice:', error);
+          await this.reconnect();
+        }
+      }, 1000);
     }
 
     await this.getDevicesState();
   }
 
   async unregisterDevice(device) {
-    this.devicesList = this.devices.filter(current => current.getData().plejdId !== device.getData().plejdId);
+    this.devicesList = this.devicesList.filter(
+      (current) => current.getData().plejdId !== device.getData().plejdId,
+    );
 
     if (this.devices[device.getData().plejdId]) {
       delete this.devices[device.getData().plejdId];
@@ -77,7 +197,10 @@ class PlejdApp extends Homey.App {
 
   async setAllDevicesAsAvailable() {
     for (let i = 0, length = this.devicesList.length; i < length; i++) {
-      if (this.devicesList[i] && this.devicesList[i].setAvailable !== undefined) {
+      if (
+        this.devicesList[i] &&
+        this.devicesList[i].setAvailable !== undefined
+      ) {
         try {
           await this.devicesList[i].setAvailable();
         } catch (error) {
@@ -89,9 +212,18 @@ class PlejdApp extends Homey.App {
 
   async setAllDevicesAsUnavailable() {
     for (let i = 0, length = this.devicesList.length; i < length; i++) {
-      if (this.devicesList[i] && this.devicesList[i].setUnavailable !== undefined) {
+      if (
+        this.devicesList[i] &&
+        this.devicesList[i].setUnavailable !== undefined
+      ) {
         try {
-          await this.devicesList[i].setUnavailable('Connecting to Plejd BLE mesh');
+          await this.devicesList[i].setUnavailable(
+            'Error connecting to Plejd BLE mesh, retrying...\n' +
+              'If this keeps happening, please try:\n' +
+              '- Restart Homey\n' +
+              '- Move Homey closer to a powered device\n' +
+              '- Install a device next to your Homey (SPR-01)',
+          );
         } catch (error) {
           this.error(error);
         }
@@ -102,18 +234,42 @@ class PlejdApp extends Homey.App {
   async reconnect() {
     this.log('Start reconnecting');
 
+    if (this.reconnectTimeoutIndex) {
+      this.log('Reconnect already scheduled');
+      return Promise.resolve(true);
+    }
+
     if (!this.isDisconnecting) {
       await this.disconnect();
     }
 
     // return
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.log('Reconnecting in', this.doReconnectDelay ? '30s' : '10s');
-      setTimeout(async () => {
-        this.doReconnectDelay = true;
-        await this.connect();
-        resolve();
-      }, this.doReconnectDelay ? 30000 : 10000);
+      this.reconnectTimeoutIndex = this.homey.setTimeout(
+        async () => {
+          this.reconnectTimeoutIndex = null;
+          this.doReconnectDelay = true;
+
+          try {
+            if (!this.isDisconnecting) {
+              await this.disconnect();
+            }
+
+            await this.connect();
+          } catch (error) {
+            this.error('Reconnect error:', error);
+            this.isConnecting = false;
+            this.isConnected = false;
+            // Schedule another reconnect attempt
+            resolve();
+            await this.reconnect();
+            return;
+          }
+          resolve();
+        },
+        this.doReconnectDelay ? 30000 : 10000,
+      );
     });
   }
 
@@ -132,18 +288,44 @@ class PlejdApp extends Homey.App {
 
     if (!cryptokey) {
       this.log('No cryptokey exists.');
+      this.isConnecting = false;
       return Promise.resolve(false);
     }
 
     const meshUUID = this.homey.settings.get('plejd_mesh');
+    // const connectableDeviceIds = this._getConnectableDeviceIds();
+
+    // if (connectableDeviceIds.length === 0) {
+    //   this.log(
+    //     'No connectable paired devices available for BLE mesh connection',
+    //   );
+    //   this.isConnecting = false;
+    //   return Promise.resolve(false);
+    // }
 
     let currentAdvertisement;
 
     if (meshUUID) {
       this.log('Using saved mesh uuid', meshUUID);
 
+      // if (connectableDeviceIds.length > 0) {
+      //   const savedMeshId = this._normalizeBleId(meshUUID);
+      //   const isConnectableMesh = connectableDeviceIds.includes(savedMeshId);
+
+      //   if (!isConnectableMesh) {
+      //     this.log(
+      //       'Saved mesh uuid is not a connectable paired device, clearing cache',
+      //     );
+      //     this.homey.settings.set('plejd_mesh', null);
+      //     this.isConnecting = false;
+      //     return this.reconnect();
+      //   }
+      // }
+
       try {
-        currentAdvertisement = await this.homey.ble.find(meshUUID.replace(/:/g, ''));
+        currentAdvertisement = await this.homey.ble.find(
+          meshUUID.replace(/:/g, ''),
+        );
       } catch (error) {
         this.homey.settings.set('plejd_mesh', null);
         this.isConnecting = false;
@@ -188,21 +370,40 @@ class PlejdApp extends Homey.App {
         return this.reconnect();
       }
 
-      const sortedAdvertisements = advertisements.sort((a, b) => b.rssi - a.rssi)
+      const sortedAdvertisements = advertisements.sort(
+        (a, b) => b.rssi - a.rssi,
+      );
 
       for (let i = 0, { length } = sortedAdvertisements; i < length; i++) {
         const advertisement = sortedAdvertisements[i];
 
         if (advertisement.localName) {
-          this.log(advertisement.localName, advertisement.uuid, advertisement.rssi, this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid));
+          this.log(
+            advertisement.localName,
+            advertisement.uuid,
+            advertisement.rssi,
+            this.advertisementsNotWorking.some(
+              (uuid) => uuid === advertisement.uuid,
+            ),
+          );
         }
 
         // if (!currentAdvertisement && this.devicesList.some(device => device.getData().id.toLowerCase() === advertisement.uuid.toLowerCase())) {
-        if (!currentAdvertisement && advertisement.localName === 'P mesh') { // && !this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid)
+        if (!currentAdvertisement && advertisement.localName === 'P mesh') {
+          // && !this.advertisementsNotWorking.some(uuid => uuid === advertisement.uuid)
           currentAdvertisement = advertisement;
         }
 
-        this.log(advertisement.localName, advertisement.uuid, advertisement.rssi, this.devicesList.some(device => device.getData().id.toLowerCase() === advertisement.uuid.toLowerCase()));
+        this.log(
+          advertisement.localName,
+          advertisement.uuid,
+          advertisement.rssi,
+          this.devicesList.some(
+            (device) =>
+              device.getData().id.toLowerCase() ===
+              advertisement.uuid.toLowerCase(),
+          ),
+        );
       }
 
       advertisements = null;
@@ -252,7 +453,7 @@ class PlejdApp extends Homey.App {
 
     try {
       const characteristics = await service.discoverCharacteristics();
-      characteristics.forEach(characteristic => {
+      characteristics.forEach((characteristic) => {
         // self.log('Characteristic', characteristic.uuid);
 
         if (plejd.DATA_UUID === characteristic.uuid) {
@@ -277,17 +478,27 @@ class PlejdApp extends Homey.App {
 
     service = null;
 
-    if (this.dataCharacteristic
-      && this.lastDataCharacteristic
-      && this.lightLevelCharacteristic
-      && this.authCharacteristic
-      && this.pingCharacteristic) {
-      this.plejdCommands = new plejd.Commands(
-        cryptokey,
-        this.peripheral.address,
-        null, // this.homey.clock.getTimezone(),
-        { log: this.log, error: this.error },
-      );
+    if (
+      this.dataCharacteristic &&
+      this.lastDataCharacteristic &&
+      this.lightLevelCharacteristic &&
+      this.authCharacteristic &&
+      this.pingCharacteristic
+    ) {
+      try {
+        this.plejdCommands = new plejd.Commands(
+          cryptokey,
+          this.peripheral.address,
+          null, // this.homey.clock.getTimezone(),
+          { log: this.log, error: this.error },
+        );
+      } catch (error) {
+        this.isConnecting = false;
+        this.error(`error getting plejd commands: ${error}`);
+        this.homey.settings.set('plejd_mesh', null);
+        this.advertisementsNotWorking.push(currentAdvertisement.uuid);
+        return this.reconnect();
+      }
 
       try {
         await this.authenticate();
@@ -310,6 +521,7 @@ class PlejdApp extends Homey.App {
         await this.startPing();
       } catch (error) {
         this.error(`error when connected: ${error}`);
+        this.isConnected = false;
         this.isConnecting = false;
         this.homey.settings.set('plejd_mesh', null);
         this.advertisementsNotWorking.push(currentAdvertisement.uuid);
@@ -325,7 +537,9 @@ class PlejdApp extends Homey.App {
       */
 
       try {
-        if (this.lastDataCharacteristic.subscribeToNotifications !== undefined) {
+        if (
+          this.lastDataCharacteristic.subscribeToNotifications !== undefined
+        ) {
           this.log('startSubscribe');
           await this.startSubscribe();
         } else {
@@ -334,6 +548,7 @@ class PlejdApp extends Homey.App {
         }
       } catch (error) {
         this.error(`error startSubscribe: ${error}`);
+        this.isConnected = false;
         this.isConnecting = false;
         this.homey.settings.set('plejd_mesh', null);
         this.advertisementsNotWorking.push(currentAdvertisement.uuid);
@@ -346,6 +561,7 @@ class PlejdApp extends Homey.App {
     }
 
     this.log('Error connecting. Not all characteristics found.');
+    this.isConnecting = false;
     this.homey.settings.set('plejd_mesh', null);
     this.advertisementsNotWorking.push(currentAdvertisement.uuid);
     return this.reconnect();
@@ -355,6 +571,9 @@ class PlejdApp extends Homey.App {
     this.isDisconnecting = true;
     this.stopPollingState();
     this.homey.clearInterval(this.pingIndex);
+    this.pingErrorCount = 0;
+    this.homey.clearTimeout(this.reconnectTimeoutIndex);
+    this.reconnectTimeoutIndex = null;
 
     if (this.peripheral && this.peripheral.isConnected) {
       try {
@@ -389,13 +608,17 @@ class PlejdApp extends Homey.App {
   async authenticate() {
     this.log('authenticating');
     // this.log('authenticate write');
-    await this.authCharacteristic.write(this.plejdCommands.authenticateInitialize());
+    await this.authCharacteristic.write(
+      this.plejdCommands.authenticateInitialize(),
+    );
 
     // this.log('authenticate read');
     const data = await this.authCharacteristic.read();
 
     // this.log('authenticate write response');
-    await this.authCharacteristic.write(this.plejdCommands.authenticateChallengeResponse(data));
+    await this.authCharacteristic.write(
+      this.plejdCommands.authenticateChallengeResponse(data),
+    );
 
     this.log('authenticating done');
 
@@ -408,7 +631,9 @@ class PlejdApp extends Homey.App {
     this.log('Sync time');
 
     if (devices.length) {
-      await this.plejdWrite(this.plejdCommands.timeGet(devices[0].getData().plejdId));
+      await this.plejdWrite(
+        this.plejdCommands.timeGet(devices[0].getData().plejdId),
+      );
 
       const data = await this.dataCharacteristic.read();
 
@@ -432,9 +657,15 @@ class PlejdApp extends Homey.App {
   async getDevicesState() {
     this.homey.clearTimeout(this.getDeviceStateIndex);
     this.getDeviceStateIndex = this.homey.setTimeout(async () => {
-      if (this.lightLevelCharacteristic && this.plejdCommands && this.isConnected) {
+      if (
+        this.lightLevelCharacteristic &&
+        this.plejdCommands &&
+        this.isConnected
+      ) {
         try {
-          await this.lightLevelCharacteristic.write(this.plejdCommands.stateGetAll());
+          await this.lightLevelCharacteristic.write(
+            this.plejdCommands.stateGetAll(),
+          );
         } catch (error) {
           this.log('Error while writing getDevicesState.');
           this.error(error);
@@ -444,11 +675,11 @@ class PlejdApp extends Homey.App {
   }
 
   async startSubscribe() {
-    await this.lastDataCharacteristic.subscribeToNotifications(async data => {
+    await this.lastDataCharacteristic.subscribeToNotifications(async (data) => {
       try {
         const state = this.plejdCommands.notificationParse(data);
 
-        // this.log(`lastData subscribe: ${JSON.stringify(state)}`);
+        this.log(`lastData subscribe: ${JSON.stringify(state)}`);
 
         if (state && state.cmd === 'state') {
           const device = this.devices[state.id];
@@ -456,30 +687,48 @@ class PlejdApp extends Homey.App {
           if (device) {
             await device.setState(state);
           }
+        } else if (state && state.cmd === 'thermostat') {
+          const device = this.devices[state.id];
+
+          if (device) {
+            await device.setState(state);
+          }
+        } else if (state && state.cmd === 'motion') {
+          const device = this.devices[state.id];
+
+          if (device) {
+            await device.setState(state);
+          }
+        } else if (state && state.cmd === 'scene') {
+          this.sceneTrigger
+            .trigger(null, { scene: { id: state.state } })
+            .catch(this.error);
         }
       } catch (error) {
         this.error(`lastData error: ${error}`);
       }
     });
 
-    await this.lightLevelCharacteristic.subscribeToNotifications(async data => {
-      try {
-        const states = this.plejdCommands.stateParse(data);
+    await this.lightLevelCharacteristic.subscribeToNotifications(
+      async (data) => {
+        try {
+          const states = this.plejdCommands.stateParse(data);
 
-        for (let i = 0, length = states.length; i < length; i++) {
-          const state = states[i];
-          const device = this.devices[state.id];
+          for (let i = 0, length = states.length; i < length; i++) {
+            const state = states[i];
+            const device = this.devices[state.id];
 
-          this.log(`lightLevel subscribe: ${JSON.stringify(state)}`);
+            this.log(`lightLevel subscribe: ${JSON.stringify(state)}`);
 
-          if (device) {
-            await device.setState(state);
+            if (device) {
+              await device.setState(state);
+            }
           }
+        } catch (error) {
+          this.error(`lightLevel error: ${error}`);
         }
-      } catch (error) {
-        this.error(`lightLevel error: ${error}`);
-      }
-    });
+      },
+    );
 
     await this.getDevicesState();
   }
@@ -507,7 +756,7 @@ class PlejdApp extends Homey.App {
   }
 
   sleep(ms) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.homey.setTimeout(resolve, ms);
     });
   }
@@ -517,7 +766,9 @@ class PlejdApp extends Homey.App {
       // this.log('getState', id);
 
       if (this.lightLevelCharacteristic) {
-        await this.lightLevelCharacteristic.write(this.plejdCommands.stateGet(id));
+        await this.lightLevelCharacteristic.write(
+          this.plejdCommands.stateGet(id),
+        );
 
         const stateResponse = await this.lightLevelCharacteristic.read();
 
@@ -526,7 +777,7 @@ class PlejdApp extends Homey.App {
         const states = this.plejdCommands.stateParse(stateResponse);
         let deviceState = null;
 
-        states.forEach(state => {
+        states.forEach((state) => {
           if (state.id === id) {
             deviceState = state;
           }
@@ -544,6 +795,7 @@ class PlejdApp extends Homey.App {
   }
 
   async turnOn(id, brightness) {
+    this._clearDimTransition(id);
     this.log('turnOn', id, brightness || '');
     if (this.plejdCommands) {
       this.writeQueue.unshift({
@@ -557,11 +809,160 @@ class PlejdApp extends Homey.App {
   }
 
   async turnOff(id) {
+    this._clearDimTransition(id);
     this.log('turnOff', id);
     if (this.plejdCommands) {
       this.writeQueue.unshift({
         id,
         command: this.plejdCommands.deviceOff(id),
+        shouldRetry: true,
+      });
+    }
+
+    return Promise.resolve(false);
+  }
+
+  _clearDimTransition(id) {
+    if (this.dimTransitionTimers[id]) {
+      this.homey.clearInterval(this.dimTransitionTimers[id]);
+      delete this.dimTransitionTimers[id];
+    }
+  }
+
+  _queueBrightness(id, brightness, shouldRetry) {
+    if (!this.plejdCommands) {
+      return;
+    }
+
+    if (!brightness || brightness <= 0) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.deviceOff(id),
+        shouldRetry,
+      });
+      return;
+    }
+
+    this.writeQueue.unshift({
+      id,
+      command: this.plejdCommands.deviceOn(id, brightness),
+      shouldRetry,
+    });
+  }
+
+  async dimTo(id, targetBrightness, transitionSeconds, initialBrightness) {
+    this._clearDimTransition(id);
+
+    if (!this.plejdCommands) {
+      return Promise.resolve(false);
+    }
+
+    const target = Math.max(0, Math.min(255, Math.round(targetBrightness)));
+    const duration = Number(transitionSeconds);
+
+    if (
+      !Number.isFinite(initialBrightness) ||
+      !Number.isFinite(duration) ||
+      duration <= 1
+    ) {
+      this._queueBrightness(id, target, true);
+      return Promise.resolve(false);
+    }
+
+    const start = Math.max(0, Math.min(255, Math.round(initialBrightness)));
+
+    if (start === target) {
+      this._queueBrightness(id, target, true);
+      return Promise.resolve(false);
+    }
+
+    const delta = target - start;
+    const transitionSteps = Math.min(
+      Math.abs(delta),
+      Math.max(1, Math.round(DIM_TRANSITION_STEPS_PER_SECOND * duration)),
+    );
+    const transitionInterval = (duration * 1000) / transitionSteps;
+
+    this.log(
+      'dimTo',
+      id,
+      `from ${start} to ${target} in ${duration}s (${transitionSteps} steps)`,
+    );
+
+    const dtStart = new Date();
+
+    this.dimTransitionTimers[id] = this.homey.setInterval(() => {
+      const elapsedMs = new Date().getTime() - dtStart.getTime();
+      let elapsedSeconds = elapsedMs / 1000;
+
+      if (elapsedSeconds > duration || elapsedSeconds < 0) {
+        elapsedSeconds = duration;
+      }
+
+      let nextBrightness = Math.round(
+        start + (delta * elapsedSeconds) / duration,
+      );
+
+      if (elapsedSeconds === duration) {
+        nextBrightness = target;
+        this._clearDimTransition(id);
+        this._queueBrightness(id, nextBrightness, true);
+      } else {
+        this._queueBrightness(id, nextBrightness, false);
+      }
+    }, transitionInterval);
+
+    return Promise.resolve(false);
+  }
+
+  async thermostatSetTargetTemperature(id, temperature) {
+    this.log('thermostatSetTargetTemperature', id, temperature);
+    if (this.plejdCommands) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.thermostatSetTargetTemperature(
+          id,
+          temperature,
+        ),
+        shouldRetry: true,
+      });
+    }
+
+    return Promise.resolve(false);
+  }
+
+  async thermostatSetMode(id, isOn) {
+    this.log('thermostatSetMode', id, isOn);
+    if (this.plejdCommands) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.thermostatSetMode(id, isOn ? 7 : 0),
+        shouldRetry: true,
+      });
+    }
+
+    return Promise.resolve(false);
+  }
+
+  async setLightTemperature(id, temperature) {
+    this.log('setLightTemperature', id, temperature);
+    if (this.plejdCommands) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.deviceSetColorTemperature(id, temperature),
+        shouldRetry: true,
+      });
+    }
+
+    return Promise.resolve(false);
+  }
+
+  async setCoverPosition(id, position) {
+    this.log('setCoverPosition', id, position);
+    if (this.plejdCommands) {
+      this.writeQueue.unshift({
+        id,
+        command: this.plejdCommands.coverSetPosition(id, position),
         shouldRetry: true,
       });
     }
@@ -586,6 +987,8 @@ class PlejdApp extends Homey.App {
           this.homey.settings.set('plejd_mesh', null);
           await this.reconnect();
         }
+      } else {
+        this.pingErrorCount = 0;
       }
     }, 300000); // -30s- 5m
   }
@@ -618,22 +1021,36 @@ class PlejdApp extends Homey.App {
 
         const queueItem = this.writeQueue.pop();
 
-        this.writeQueue = this.writeQueue.filter(item => !(item.id === queueItem.id && item.command.equals(queueItem.command)));
+        this.writeQueue = this.writeQueue.filter(
+          (item) =>
+            !(
+              item.id === queueItem.id && item.command.equals(queueItem.command)
+            ),
+        );
 
         try {
-          this.log('Writing', queueItem.id, this.writeQueue.length, queueItem.command.toString('hex'));
+          this.log(
+            'Writing',
+            queueItem.id,
+            this.writeQueue.length,
+            queueItem.command.toString('hex'),
+          );
           await this.plejdWrite(queueItem.command);
         } catch (error) {
           if (queueItem.shouldRetry) {
             queueItem.retryCount = (queueItem.retryCount || 0) + 1;
-            this.log(`Will retry command, count failed so far ${queueItem.retryCount} (${queueItem.id})`);
+            this.log(
+              `Will retry command, count failed so far ${queueItem.retryCount} (${queueItem.id})`,
+            );
             if (queueItem.retryCount <= 5) {
               this.log(`Adding items back to queue id: ${queueItem.id}`);
               this.writeQueue.push(queueItem);
 
               break;
             } else {
-              this.error(`Write queue: Exceed max retry count (${5}) for (${queueItem.id}).`);
+              this.error(
+                `Write queue: Exceed max retry count (${5}) for (${queueItem.id}).`,
+              );
             }
           }
         }
@@ -646,7 +1063,6 @@ class PlejdApp extends Homey.App {
       await this.runWriteLoop();
     }, 400);
   }
-
 }
 
 module.exports = PlejdApp;

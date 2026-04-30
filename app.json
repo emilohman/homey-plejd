@@ -1,6 +1,6 @@
 {
   "id": "se.emilohman.plejd",
-  "version": "3.3.8",
+  "version": "3.5.4",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#48c5d6",
@@ -113,6 +113,22 @@
               }
             }
           ]
+        },
+        {
+          "id": "dimmable",
+          "type": "checkbox",
+          "value": true,
+          "label": {
+            "en": "Dimmable"
+          }
+        },
+        {
+          "id": "color_temperature",
+          "type": "checkbox",
+          "value": false,
+          "label": {
+            "en": "Color temperature"
+          }
         }
       ]
     },
@@ -126,6 +142,131 @@
       "images": {
         "large": "/drivers/button/assets/images/large.png",
         "small": "/drivers/button/assets/images/small.png"
+      },
+      "pair": [
+        {
+          "id": "login",
+          "template": "login_credentials",
+          "options": {
+            "logo": "../../../assets/images/large.png"
+          }
+        },
+        {
+          "id": "site",
+          "navigation": {
+            "prev": "login"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "prev": "site",
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ]
+    },
+    {
+      "id": "motion",
+      "name": {
+        "en": "Plejd motion sensor"
+      },
+      "class": "sensor",
+      "capabilities": [
+        "alarm_motion"
+      ],
+      "images": {
+        "large": "/drivers/motion/assets/images/large.png",
+        "small": "/drivers/motion/assets/images/small.png"
+      },
+      "pair": [
+        {
+          "id": "login",
+          "template": "login_credentials",
+          "options": {
+            "logo": "../../../assets/images/large.png"
+          }
+        },
+        {
+          "id": "site",
+          "navigation": {
+            "prev": "login"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "prev": "site",
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ]
+    },
+    {
+      "id": "cover",
+      "name": {
+        "en": "Plejd cover"
+      },
+      "class": "curtain",
+      "capabilities": [
+        "windowcoverings_set"
+      ],
+      "images": {
+        "large": "/drivers/cover/assets/images/large.png",
+        "small": "/drivers/cover/assets/images/small.png"
+      },
+      "pair": [
+        {
+          "id": "login",
+          "template": "login_credentials",
+          "options": {
+            "logo": "../../../assets/images/large.png"
+          }
+        },
+        {
+          "id": "site",
+          "navigation": {
+            "prev": "login"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "prev": "site",
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ]
+    },
+    {
+      "id": "thermostat",
+      "name": {
+        "en": "Plejd thermostat"
+      },
+      "class": "thermostat",
+      "capabilities": [
+        "target_temperature",
+        "measure_temperature",
+        "onoff"
+      ],
+      "images": {
+        "large": "/drivers/thermostat/assets/images/large.png",
+        "small": "/drivers/thermostat/assets/images/small.png"
       },
       "pair": [
         {
@@ -227,6 +368,77 @@
             "name": "device",
             "type": "device",
             "filter": "driver_id=button"
+          }
+        ]
+      },
+      {
+        "id": "scene_triggered",
+        "title": {
+          "en": "Scene ... has been triggered"
+        },
+        "titleFormatted": {
+          "en": "Scene [[scene]] has been triggered"
+        },
+        "args": [
+          {
+            "type": "autocomplete",
+            "name": "scene",
+            "title": {
+              "en": "Select scene"
+            }
+          }
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "id": "dim_over_time",
+        "title": {
+          "en": "Dim from ... to ... over ... seconds"
+        },
+        "titleFormatted": {
+          "en": "Dim [[brightness_from]] to [[brightness_to]] over [[seconds]] seconds"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=plejd"
+          },
+          {
+            "name": "brightness_from",
+            "type": "range",
+            "title": {
+              "en": "Brightness from"
+            },
+            "label": "%",
+            "labelMultiplier": 100,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          {
+            "name": "brightness_to",
+            "type": "range",
+            "title": {
+              "en": "Brightness to"
+            },
+            "label": "%",
+            "labelMultiplier": 100,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          {
+            "name": "seconds",
+            "type": "number",
+            "title": {
+              "en": "Time"
+            },
+            "label": "s",
+            "min": 1,
+            "max": 600,
+            "step": 1
           }
         ]
       }

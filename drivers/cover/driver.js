@@ -4,36 +4,9 @@ const Homey = require('homey');
 
 const api = require('../../lib/api');
 
-class PlejdDriver extends Homey.Driver {
+class PlejdCoverDriver extends Homey.Driver {
   async onInit() {
-    this.log('Plejd driver has been inited');
-
-    this.homey.flow
-      .getActionCard('dim_over_time')
-      .registerRunListener(async (args) => {
-        const seconds = Math.max(1, Math.min(600, Number(args.seconds) || 1));
-        const normalizedBrightnessFrom = Math.max(
-          0,
-          Math.min(1, Number(args.brightness_from) || 0),
-        );
-        const normalizedBrightnessTo = Math.max(
-          0,
-          Math.min(1, Number(args.brightness_to) || 0),
-        );
-        const initialBrightness = Math.round(normalizedBrightnessFrom * 255);
-        const targetBrightness = Math.round(normalizedBrightnessTo * 255);
-
-        await this.homey.app.dimTo(
-          args.device.getData().plejdId,
-          targetBrightness,
-          seconds,
-          initialBrightness,
-        );
-
-        await args.device.setCapabilityValue('onoff', targetBrightness > 0);
-
-        return Promise.resolve(true);
-      });
+    this.log('Plejd cover driver has been inited');
   }
 
   onPair(session) {
@@ -116,42 +89,22 @@ class PlejdDriver extends Homey.Driver {
       const cryptoKey = plejdApi.getCryptoKey();
       this.homey.settings.set('cryptokey', cryptoKey);
 
-      const plejdDevices = plejdApi.getDevices();
+      const plejdDevices = plejdApi.getDevices('cover');
 
       plejdDevices.forEach((plejdDevice) => {
-        const capabilities = ['onoff'];
-
-        if (plejdDevice.dimmable) {
-          capabilities.push('dim');
-        }
-
-        if (plejdDevice.colorTemp) {
-          capabilities.push('light_temperature');
-        }
-
-        // capabilities.push('light_hue');
-        // capabilities.push('light_saturation');
-        // capabilities.push('light_mode');
-
         devices.push({
           name: plejdDevice.name,
           data: {
             id: plejdDevice.deviceId,
             plejdId: plejdDevice.id,
-            dimmable: plejdDevice.dimmable,
           },
           store: {
             hardwareName: plejdDevice.hardwareName,
             hardwareId: plejdDevice.hardwareId,
             traits: plejdDevice.traits,
           },
-          capabilities,
-          class: plejdDevice.type,
-          settings: {
-            device_class: plejdDevice.type,
-            dimmable: plejdDevice.dimmable,
-            color_temperature: plejdDevice.colorTemp,
-          },
+          capabilities: ['windowcoverings_set'],
+          class: 'curtain',
         });
       });
 
@@ -160,4 +113,4 @@ class PlejdDriver extends Homey.Driver {
   }
 }
 
-module.exports = PlejdDriver;
+module.exports = PlejdCoverDriver;

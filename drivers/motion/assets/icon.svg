@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 512 512" xml:space="preserve">
+  <style type="text/css">
+    .st0{fill:none;stroke:#000000;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+  </style>
+
+  <path class="st0" d="M256 28c-57 0-102 45-102 102v250c0 58 44 104 102 104s102-46 102-104V130c0-57-45-102-102-102z"/>
+
+  <path class="st0" d="M178 338h156a16 16 0 0 1 16 16v22c0 51-42 93-94 93s-94-42-94-93v-22a16 16 0 0 1 16-16z"/>
+</svg>
