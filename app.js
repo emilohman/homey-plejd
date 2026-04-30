@@ -169,7 +169,12 @@ class PlejdApp extends Homey.App {
 
     if (this.devicesList.length === 1) {
       this.homey.setTimeout(async () => {
-        await this.connect();
+        try {
+          await this.connect();
+        } catch (error) {
+          this.error('Error connecting from registerDevice:', error);
+          await this.reconnect();
+        }
       }, 1000);
     }
 
@@ -246,11 +251,21 @@ class PlejdApp extends Homey.App {
           this.reconnectTimeoutIndex = null;
           this.doReconnectDelay = true;
 
-          if (!this.isDisconnecting) {
-            await this.disconnect();
-          }
+          try {
+            if (!this.isDisconnecting) {
+              await this.disconnect();
+            }
 
-          await this.connect();
+            await this.connect();
+          } catch (error) {
+            this.error('Reconnect error:', error);
+            this.isConnecting = false;
+            this.isConnected = false;
+            // Schedule another reconnect attempt
+            resolve();
+            await this.reconnect();
+            return;
+          }
           resolve();
         },
         this.doReconnectDelay ? 30000 : 10000,
@@ -470,12 +485,20 @@ class PlejdApp extends Homey.App {
       this.authCharacteristic &&
       this.pingCharacteristic
     ) {
-      this.plejdCommands = new plejd.Commands(
-        cryptokey,
-        this.peripheral.address,
-        null, // this.homey.clock.getTimezone(),
-        { log: this.log, error: this.error },
-      );
+      try {
+        this.plejdCommands = new plejd.Commands(
+          cryptokey,
+          this.peripheral.address,
+          null, // this.homey.clock.getTimezone(),
+          { log: this.log, error: this.error },
+        );
+      } catch (error) {
+        this.isConnecting = false;
+        this.error(`error getting plejd commands: ${error}`);
+        this.homey.settings.set('plejd_mesh', null);
+        this.advertisementsNotWorking.push(currentAdvertisement.uuid);
+        return this.reconnect();
+      }
 
       try {
         await this.authenticate();
@@ -538,6 +561,7 @@ class PlejdApp extends Homey.App {
     }
 
     this.log('Error connecting. Not all characteristics found.');
+    this.isConnecting = false;
     this.homey.settings.set('plejd_mesh', null);
     this.advertisementsNotWorking.push(currentAdvertisement.uuid);
     return this.reconnect();
@@ -547,6 +571,7 @@ class PlejdApp extends Homey.App {
     this.isDisconnecting = true;
     this.stopPollingState();
     this.homey.clearInterval(this.pingIndex);
+    this.pingErrorCount = 0;
     this.homey.clearTimeout(this.reconnectTimeoutIndex);
     this.reconnectTimeoutIndex = null;
 
@@ -962,6 +987,8 @@ class PlejdApp extends Homey.App {
           this.homey.settings.set('plejd_mesh', null);
           await this.reconnect();
         }
+      } else {
+        this.pingErrorCount = 0;
       }
     }, 300000); // -30s- 5m
   }
