@@ -687,6 +687,7 @@ class PlejdApp extends Homey.App {
           if (device) {
             await device.setState(state);
           }
+          await this.updateRoomDevices(state);
         } else if (state && state.cmd === 'thermostat') {
           const device = this.devices[state.id];
 
@@ -723,6 +724,7 @@ class PlejdApp extends Homey.App {
             if (device) {
               await device.setState(state);
             }
+            await this.updateRoomDevices(state);
           }
         } catch (error) {
           this.error(`lightLevel error: ${error}`);
@@ -731,6 +733,21 @@ class PlejdApp extends Homey.App {
     );
 
     await this.getDevicesState();
+  }
+
+  async updateRoomDevices(state) {
+    if (!state || state.state === null || state.state === undefined) {
+      return;
+    }
+    for (const device of this.devicesList) {
+      if (device && typeof device.onMemberState === 'function') {
+        try {
+          await device.onMemberState(state);
+        } catch (error) {
+          this.error('Room update error:', error);
+        }
+      }
+    }
   }
 
   async startPollingState() {

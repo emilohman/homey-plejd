@@ -133,6 +133,48 @@
       ]
     },
     {
+      "id": "room",
+      "name": {
+        "en": "Plejd room"
+      },
+      "class": "light",
+      "capabilities": [
+        "onoff",
+        "dim"
+      ],
+      "images": {
+        "large": "/drivers/room/assets/images/large.png",
+        "small": "/drivers/room/assets/images/small.png"
+      },
+      "pair": [
+        {
+          "id": "login",
+          "template": "login_credentials",
+          "options": {
+            "logo": "../../../assets/images/large.png"
+          }
+        },
+        {
+          "id": "site",
+          "navigation": {
+            "prev": "login"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "prev": "site",
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ]
+    },
+    {
       "id": "button",
       "name": {
         "en": "Plejd button"
