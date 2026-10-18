@@ -103,7 +103,12 @@ class PlejdThermostatDriver extends Homey.Driver {
             hardwareId: plejdDevice.hardwareId,
             traits: plejdDevice.traits,
           },
-          capabilities: ['target_temperature', 'measure_temperature', 'onoff'],
+          capabilities: [
+            'target_temperature',
+            'measure_temperature',
+            'onoff',
+            'measure_power',
+          ],
           class: 'thermostat',
         });
       });

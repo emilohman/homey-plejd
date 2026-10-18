@@ -304,7 +304,8 @@
       "capabilities": [
         "target_temperature",
         "measure_temperature",
-        "onoff"
+        "onoff",
+        "measure_power"
       ],
       "images": {
         "large": "/drivers/thermostat/assets/images/large.png",
@@ -335,6 +336,26 @@
         {
           "id": "add_devices",
           "template": "add_devices"
+        }
+      ],
+      "settings": [
+        {
+          "id": "heater_power",
+          "type": "number",
+          "label": {
+            "en": "Heater power (W)",
+            "no": "Varmeeffekt (W)"
+          },
+          "hint": {
+            "en": "Rated power of the connected heater. Reported as measure_power while the thermostat is heating.",
+            "no": "Merkeeffekt på varmekabelen. Rapporteres som effekt mens termostaten varmer."
+          },
+          "value": 700,
+          "min": 0,
+          "max": 5000,
+          "units": {
+            "en": "W"
+          }
         }
       ]
     }

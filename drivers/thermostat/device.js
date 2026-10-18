@@ -14,6 +14,11 @@ class PlejdThermostatDevice extends Homey.Device {
 
     this.receiveState = true;
 
+    // Devices paired before this change lack measure_power – add it.
+    if (!this.hasCapability('measure_power')) {
+      await this.addCapability('measure_power');
+    }
+
     this.registerCapabilityListener('target_temperature', async (value) => {
       this.stopGettingState();
       const result = await this.homey.app.thermostatSetTargetTemperature(
@@ -64,6 +69,17 @@ class PlejdThermostatDevice extends Homey.Device {
       );
     }
 
+    if (state.heating !== null && state.heating !== undefined) {
+      this.log(`heating: ${state.heating} mode: ${state.mode}`);
+      this.heating = Boolean(state.heating);
+    }
+    if (state.mode === 0) {
+      this.heating = false; // thermostat is switched off
+    }
+    if (this.heating !== undefined) {
+      await this.updatePower();
+    }
+
     if (state.mode !== null && state.mode !== undefined) {
       await this.setCapabilityValue('onoff', state.mode !== 0);
     } else if (state.heating !== null && state.heating !== undefined) {
@@ -71,6 +87,20 @@ class PlejdThermostatDevice extends Homey.Device {
     }
 
     return Promise.resolve(true);
+  }
+
+  async updatePower(heaterPower = this.getSetting('heater_power')) {
+    const watts = Number(heaterPower) || 0;
+    const power = this.heating ? watts : 0;
+    if (this.getCapabilityValue('measure_power') !== power) {
+      await this.setCapabilityValue('measure_power', power);
+    }
+  }
+
+  async onSettings({ newSettings, changedKeys }) {
+    if (changedKeys.includes('heater_power')) {
+      await this.updatePower(newSettings.heater_power);
+    }
   }
 
   stopGettingState() {
